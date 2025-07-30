@@ -17,6 +17,14 @@ let monacoEditor = null;
 let isFullscreen = false;
 let currentFiles = {};
 
+function getFileContent(fileName) {
+  if (fileContents[fileName]) {
+    return fileContents[fileName];
+  }
+  const foundKey = Object.keys(fileContents).find(key => key === fileName || key.endsWith('/' + fileName));
+  return foundKey ? fileContents[foundKey] : null;
+}
+
 // Initialize Monaco Editor
 require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
 
@@ -143,7 +151,11 @@ function handleZipFile(file) {
   results.innerHTML = "";
   fileContents = {};
   resourcesCntDecoded = '';
-  downloadBtn.parentElement.style.display = 'none';
+  const downloadSection = document.getElementById('downloadSection');
+  if (downloadSection) {
+      downloadSection.style.display = 'none';
+  }
+  
   const zip = new JSZip();
   zip.loadAsync(file).then((zip) => {
     const promises = [];
@@ -160,13 +172,18 @@ function handleZipFile(file) {
 
     // Após carregar todos os arquivos, processa os principais
     Promise.all(promises).then(() => {
-      if (fileContents["resources.cnt"]) {
-        processFile("resources.cnt", fileContents["resources.cnt"]);
+      const resourcesCnt = getFileContent('resources.cnt');
+      if (resourcesCnt) {
+        processFile('resources.cnt', resourcesCnt);
       }
-      if (fileContents["contentmetadata.md"]) {
-        processFile("contentmetadata.md", fileContents["contentmetadata.md"]);
+      const contentMetadata = getFileContent('contentmetadata.md');
+      if (contentMetadata) {
+        processFile('contentmetadata.md', contentMetadata);
       }
-      downloadBtn.parentElement.style.display = 'block';
+      
+      if (downloadSection) {
+          downloadSection.style.display = 'block';
+      }
     });
   });
 }
@@ -187,7 +204,7 @@ function openResourceInMonaco(resourceId, resourceName, resourceType) {
     fileName = 'resources.cnt.json';
   } else {
     const contentFileName = resourceId + "_content";
-    content = fileContents[contentFileName];
+    content = getFileContent(contentFileName);
 
     if (!content) {
       alert('Nenhum conteúdo associado a este recurso.');
@@ -462,6 +479,9 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+/**
+ * Função de download corrigida
+ */
 function downloadResources() {
   if (!resourcesCntDecoded) {
     alert('Nenhum recurso processado para download.');
@@ -475,34 +495,68 @@ function downloadResources() {
   if (packageInfo.resources) {
     packageInfo.resources.forEach(resource => {
       const id = resource.id;
-      const name = (resource.displayName || resource.name || id).replace(/\s+/g, '_');
-      const content = fileContents[id + '_content'];
+      // Sanitiza o nome para ser seguro para nomes de arquivo/pasta
+      const name = (resource.displayName || resource.name || id).replace(/[\s/\\?%*:|"<>]/g, '_');
+      const content = getFileContent(id + '_content');
+      
       if (!content) return;
 
-      const inner = new JSZip();
-      const task = inner.loadAsync(content).then(() => {
-        const innerTasks = [];
-        inner.forEach((relPath, entry) => {
-          if (!entry.dir) {
-            innerTasks.push(entry.async('arraybuffer').then(data => {
-              outZip.file(name + '/' + relPath, data);
-            }));
-          }
+      // Verifica se o recurso é uma ScriptCollection ou outro tipo de arquivo compactado
+      if (resource.resourceType === 'ScriptCollection' || resource.contentType.includes('zip') || resource.contentType.includes('octet-stream')) {
+        const inner = new JSZip();
+        const task = inner.loadAsync(content).then(innerZip => {
+          // Se for um ZIP válido (ScriptCollection), extrai os arquivos para uma pasta
+          const innerTasks = [];
+          innerZip.forEach((relPath, entry) => {
+            if (!entry.dir) {
+              innerTasks.push(entry.async('arraybuffer').then(data => {
+                outZip.file(name + '/' + relPath, data);
+              }));
+            }
+          });
+          return Promise.all(innerTasks);
+        }).catch(() => {
+          // Se não for um ZIP (provavelmente um recurso binário), salva o arquivo diretamente
+          outZip.file(name, content);
         });
-        return Promise.all(innerTasks);
-      }).catch(() => {
-        outZip.file(name, content);
-      });
-
-      tasks.push(task);
+        tasks.push(task);
+      } else {
+        // Para outros tipos de recursos (XML, Groovy, etc.), adiciona o conteúdo diretamente
+        let fileExtension = '.txt'; // Extensão padrão
+        const resourceName = resource.name || resource.displayName;
+        const extensionMatch = resourceName.match(/\.([^.]+)$/);
+        if (extensionMatch) {
+            fileExtension = `.${extensionMatch[1]}`;
+        } else if (resource.contentType) {
+            const ct = resource.contentType;
+            if (ct.includes('groovy')) fileExtension = '.groovy';
+            else if (ct.includes('javascript')) fileExtension = '.js';
+            else if (ct.includes('xml')) fileExtension = '.xml';
+        }
+        outZip.file(`${name}${extensionMatch ? '' : fileExtension}`, content);
+      }
     });
   }
 
   Promise.all(tasks).then(() => {
+    // Adiciona os metadados decodificados para conveniência
+    try {
+        const metadataContent = getFileContent('contentmetadata.md');
+        if(metadataContent) {
+            const decodedMetadata = atob(metadataContent.trim());
+            outZip.file('contentmetadata_decoded.md', decodedMetadata);
+        }
+    } catch(e) { console.error("Erro ao decodificar metadados para o ZIP", e); }
+    
+    if (resourcesCntDecoded) {
+        outZip.file('resources_decoded.json', resourcesCntDecoded);
+    }
+
+    // Gera o ZIP final e inicia o download
     outZip.generateAsync({ type: 'blob' }).then(blob => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'decoded_resources.zip';
+      a.download = 'decoded_sap_cpi_package.zip';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
