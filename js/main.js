@@ -550,6 +550,7 @@ function downloadResources() {
   if (packageInfo.resources) {
     packageInfo.resources.forEach((resource) => {
       const id = resource.id;
+
       // Sanitiza o nome para ser seguro para nomes de arquivo/pasta
       const name = (resource.displayName || resource.name || id).replace(
         /[\s/\\?%*:|"<>]/g,
@@ -606,6 +607,7 @@ function downloadResources() {
   }
 
   Promise.all(tasks).then(() => {
+
     // Adiciona os metadados decodificados para conveniência
     try {
       const metadataContent = getFileContent("contentmetadata.md");
@@ -624,6 +626,7 @@ function downloadResources() {
     // Gera o ZIP final e inicia o download
     outZip.generateAsync({ type: "blob" }).then((blob) => {
       const a = document.createElement("a");
+
       a.href = URL.createObjectURL(blob);
 
       const decodedName = originalZipName.replace(/\.zip$/i, "_decoded.zip");
