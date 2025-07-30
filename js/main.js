@@ -12,24 +12,31 @@ const fullscreenBtn = document.getElementById("fullscreenBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 
 let fileContents = {}; // Armazena o conteúdo dos arquivos do ZIP principal
-let resourcesCntDecoded = '';
+let resourcesCntDecoded = "";
 let monacoEditor = null;
 let isFullscreen = false;
 let currentFiles = {};
+let originalZipName = "";
 
 function getFileContent(fileName) {
   if (fileContents[fileName]) {
     return fileContents[fileName];
   }
-  const foundKey = Object.keys(fileContents).find(key => key === fileName || key.endsWith('/' + fileName));
+  const foundKey = Object.keys(fileContents).find(
+    (key) => key === fileName || key.endsWith("/" + fileName)
+  );
   return foundKey ? fileContents[foundKey] : null;
 }
 
 // Initialize Monaco Editor
-require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+require.config({
+  paths: {
+    vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs",
+  },
+});
 
-require(['vs/editor/editor.main'], function () {
-  console.log('Monaco Editor loaded successfully');
+require(["vs/editor/editor.main"], function () {
+  console.log("Monaco Editor loaded successfully");
 });
 
 // --- Funcionalidades de Drag and Drop e Seleção de Arquivo ---
@@ -84,31 +91,34 @@ fileSelect.addEventListener("change", (e) => {
 copyBtn.addEventListener("click", () => {
   if (monacoEditor) {
     const content = monacoEditor.getValue();
-    navigator.clipboard.writeText(content).then(() => {
-      copyBtn.textContent = "✅";
-      setTimeout(() => {
-        copyBtn.textContent = "📋";
-      }, 2000);
-    }).catch(() => {
-      // Fallback for older browsers
-      const textArea = document.createElement("textarea");
-      textArea.value = content;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      copyBtn.textContent = "✅";
-      setTimeout(() => {
-        copyBtn.textContent = "📋";
-      }, 2000);
-    });
+    navigator.clipboard
+      .writeText(content)
+      .then(() => {
+        copyBtn.textContent = "✅";
+        setTimeout(() => {
+          copyBtn.textContent = "📋";
+        }, 2000);
+      })
+      .catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement("textarea");
+        textArea.value = content;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        copyBtn.textContent = "✅";
+        setTimeout(() => {
+          copyBtn.textContent = "📋";
+        }, 2000);
+      });
   }
 });
 
 // Format/Pretty Print button
 formatBtn.addEventListener("click", () => {
   if (monacoEditor) {
-    const action = monacoEditor.getAction('editor.action.formatDocument');
+    const action = monacoEditor.getAction("editor.action.formatDocument");
     if (action) {
       action.run();
     }
@@ -131,12 +141,12 @@ results.addEventListener("click", function (e) {
   const scriptItem = e.target.closest(".script-item");
   if (scriptItem && scriptItem.dataset.resourceId) {
     const resourceId = scriptItem.dataset.resourceId;
-    const resourceName = scriptItem.querySelector('.script-name').textContent;
+    const resourceName = scriptItem.querySelector(".script-name").textContent;
     const resourceType = scriptItem.dataset.resourceType;
     const resourceUrl = scriptItem.dataset.resourceUrl;
 
-    if (resourceType && resourceType.toUpperCase() === 'URL' && resourceUrl) {
-      window.open(resourceUrl, '_blank');
+    if (resourceType && resourceType.toUpperCase() === "URL" && resourceUrl) {
+      window.open(resourceUrl, "_blank");
       return;
     }
 
@@ -148,14 +158,15 @@ results.addEventListener("click", function (e) {
  * Processa o arquivo ZIP principal carregado pelo usuário.
  */
 function handleZipFile(file) {
+  originalZipName = file.name;
   results.innerHTML = "";
   fileContents = {};
-  resourcesCntDecoded = '';
-  const downloadSection = document.getElementById('downloadSection');
+  resourcesCntDecoded = "";
+  const downloadSection = document.getElementById("downloadSection");
   if (downloadSection) {
-      downloadSection.style.display = 'none';
+    downloadSection.style.display = "none";
   }
-  
+
   const zip = new JSZip();
   zip.loadAsync(file).then((zip) => {
     const promises = [];
@@ -172,17 +183,17 @@ function handleZipFile(file) {
 
     // Após carregar todos os arquivos, processa os principais
     Promise.all(promises).then(() => {
-      const resourcesCnt = getFileContent('resources.cnt');
+      const resourcesCnt = getFileContent("resources.cnt");
       if (resourcesCnt) {
-        processFile('resources.cnt', resourcesCnt);
+        processFile("resources.cnt", resourcesCnt);
       }
-      const contentMetadata = getFileContent('contentmetadata.md');
+      const contentMetadata = getFileContent("contentmetadata.md");
       if (contentMetadata) {
-        processFile('contentmetadata.md', contentMetadata);
+        processFile("contentmetadata.md", contentMetadata);
       }
-      
+
       if (downloadSection) {
-          downloadSection.style.display = 'block';
+        downloadSection.style.display = "block";
       }
     });
   });
@@ -195,19 +206,19 @@ function openResourceInMonaco(resourceId, resourceName, resourceType) {
   let content;
   let fileName = resourceName;
 
-  if (resourceType && resourceType.toUpperCase() === 'CONTENTPACKAGE') {
+  if (resourceType && resourceType.toUpperCase() === "CONTENTPACKAGE") {
     if (!resourcesCntDecoded) {
-      alert('resources.cnt não encontrado ou não processado.');
+      alert("resources.cnt não encontrado ou não processado.");
       return;
     }
     content = resourcesCntDecoded;
-    fileName = 'resources.cnt.json';
+    fileName = "resources.cnt.json";
   } else {
     const contentFileName = resourceId + "_content";
     content = getFileContent(contentFileName);
 
     if (!content) {
-      alert('Nenhum conteúdo associado a este recurso.');
+      alert("Nenhum conteúdo associado a este recurso.");
       return;
     }
   }
@@ -215,11 +226,11 @@ function openResourceInMonaco(resourceId, resourceName, resourceType) {
   modalTitle.textContent = `📄 ${resourceName}`;
   modal.style.display = "block";
   modal.classList.add("show");
-  modal.querySelector('.modal-content').classList.add("show");
+  modal.querySelector(".modal-content").classList.add("show");
 
   // Initialize Monaco Editor if not already done
   if (!monacoEditor) {
-    require(['vs/editor/editor.main'], function () {
+    require(["vs/editor/editor.main"], function () {
       initializeMonacoEditor(content, fileName);
     });
   } else {
@@ -231,18 +242,18 @@ function openResourceInMonaco(resourceId, resourceName, resourceType) {
  * Inicializa o Monaco Editor
  */
 function initializeMonacoEditor(content, resourceName) {
-  monacoEditor = monaco.editor.create(document.getElementById('monacoEditor'), {
-    value: '',
-    language: 'javascript',
-    theme: 'vs-dark',
+  monacoEditor = monaco.editor.create(document.getElementById("monacoEditor"), {
+    value: "",
+    language: "javascript",
+    theme: "vs-dark",
     automaticLayout: true,
     readOnly: true,
     minimap: { enabled: true },
     scrollBeyondLastLine: false,
     fontSize: 14,
-    lineNumbers: 'on',
-    renderWhitespace: 'selection',
-    wordWrap: 'on'
+    lineNumbers: "on",
+    renderWhitespace: "selection",
+    wordWrap: "on",
   });
 
   loadContentIntoMonaco(content, resourceName);
@@ -253,14 +264,15 @@ function initializeMonacoEditor(content, resourceName) {
  */
 function loadContentIntoMonaco(content, resourceName) {
   currentFiles = {};
-  fileSelect.style.display = 'none';
-  fileSelect.innerHTML = '';
+  fileSelect.style.display = "none";
+  fileSelect.innerHTML = "";
 
   const zip = new JSZip();
 
   // Tenta carregar o conteúdo como um ZIP
-  zip.loadAsync(content)
-    .then(innerZip => {
+  zip
+    .loadAsync(content)
+    .then((innerZip) => {
       const files = [];
       innerZip.forEach((relativePath, zipEntry) => {
         if (!zipEntry.dir) {
@@ -269,25 +281,31 @@ function loadContentIntoMonaco(content, resourceName) {
       });
 
       if (files.length === 1) {
-        return innerZip.file(files[0]).async("string").then(scriptContent => {
-          setEditorContent(scriptContent, files[0]);
-        });
-      } else if (files.length > 1) {
-        const promises = files.map(fileName => {
-          return innerZip.file(fileName).async("string").then(scriptContent => {
-            currentFiles[fileName] = scriptContent;
+        return innerZip
+          .file(files[0])
+          .async("string")
+          .then((scriptContent) => {
+            setEditorContent(scriptContent, files[0]);
           });
+      } else if (files.length > 1) {
+        const promises = files.map((fileName) => {
+          return innerZip
+            .file(fileName)
+            .async("string")
+            .then((scriptContent) => {
+              currentFiles[fileName] = scriptContent;
+            });
         });
 
         return Promise.all(promises).then(() => {
-          fileSelect.innerHTML = '';
-          files.forEach(fn => {
-            const opt = document.createElement('option');
+          fileSelect.innerHTML = "";
+          files.forEach((fn) => {
+            const opt = document.createElement("option");
             opt.value = fn;
             opt.textContent = fn;
             fileSelect.appendChild(opt);
           });
-          fileSelect.style.display = 'inline-block';
+          fileSelect.style.display = "inline-block";
           fileSelect.value = files[0];
           setEditorContent(currentFiles[files[0]], files[0]);
         });
@@ -296,7 +314,7 @@ function loadContentIntoMonaco(content, resourceName) {
     .catch(() => {
       // Se não for um ZIP, trata como texto simples
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = function (e) {
         const textContent = e.target.result;
         setEditorContent(textContent, resourceName);
       };
@@ -308,31 +326,31 @@ function loadContentIntoMonaco(content, resourceName) {
  * Detecta a linguagem baseada no nome do arquivo
  */
 function detectLanguage(fileName) {
-  const ext = fileName.toLowerCase().split('.').pop();
+  const ext = fileName.toLowerCase().split(".").pop();
   const languageMap = {
-    'groovy': 'groovy',
-    'gsh': 'groovy',
-    'js': 'javascript',
-    'javascript': 'javascript',
-    'xml': 'xml',
-    'iflw': 'xml',
-    'xsl': 'xml',
-    'xsd': 'xml',
-    'edmx': 'xml',
-    'xslt': 'xml',
-    'mmap': 'xml',
-    'propdef': 'xml',
-    'project': 'xml',
-    'json': 'json',
-    'java': 'java',
-    'py': 'python',
-    'sql': 'sql',
-    'properties': 'properties',
-    'yaml': 'yaml',
-    'yml': 'yaml'
+    groovy: "groovy",
+    gsh: "groovy",
+    js: "javascript",
+    javascript: "javascript",
+    xml: "xml",
+    iflw: "xml",
+    xsl: "xml",
+    xsd: "xml",
+    edmx: "xml",
+    xslt: "xml",
+    mmap: "xml",
+    propdef: "xml",
+    project: "xml",
+    json: "json",
+    java: "java",
+    py: "python",
+    sql: "sql",
+    properties: "properties",
+    yaml: "yaml",
+    yml: "yaml",
   };
-  
-  return languageMap[ext] || 'plaintext';
+
+  return languageMap[ext] || "plaintext";
 }
 
 function setEditorContent(content, fileName) {
@@ -348,10 +366,10 @@ function setEditorContent(content, fileName) {
 function closeEditorModal() {
   modal.style.display = "none";
   modal.classList.remove("show");
-  modal.querySelector('.modal-content').classList.remove("show");
+  modal.querySelector(".modal-content").classList.remove("show");
 
-  fileSelect.style.display = 'none';
-  fileSelect.innerHTML = '';
+  fileSelect.style.display = "none";
+  fileSelect.innerHTML = "";
   currentFiles = {};
 
   if (isFullscreen) {
@@ -371,40 +389,40 @@ function toggleFullscreen() {
 }
 
 function enterFullscreen() {
-  const modalContent = modal.querySelector('.modal-content');
-  modalContent.style.position = 'fixed';
-  modalContent.style.top = '0';
-  modalContent.style.left = '0';
-  modalContent.style.width = '100vw';
-  modalContent.style.height = '100vh';
-  modalContent.style.margin = '0';
-  modalContent.style.borderRadius = '0';
-  modalContent.style.zIndex = '10001';
-  
-  fullscreenBtn.textContent = '🗗';
-  fullscreenBtn.title = 'Sair da tela cheia';
+  const modalContent = modal.querySelector(".modal-content");
+  modalContent.style.position = "fixed";
+  modalContent.style.top = "0";
+  modalContent.style.left = "0";
+  modalContent.style.width = "100vw";
+  modalContent.style.height = "100vh";
+  modalContent.style.margin = "0";
+  modalContent.style.borderRadius = "0";
+  modalContent.style.zIndex = "10001";
+
+  fullscreenBtn.textContent = "🗗";
+  fullscreenBtn.title = "Sair da tela cheia";
   isFullscreen = true;
-  
+
   if (monacoEditor) {
     setTimeout(() => monacoEditor.layout(), 100);
   }
 }
 
 function exitFullscreen() {
-  const modalContent = modal.querySelector('.modal-content');
-  modalContent.style.position = '';
-  modalContent.style.top = '';
-  modalContent.style.left = '';
-  modalContent.style.width = '95%';
-  modalContent.style.height = '90%';
-  modalContent.style.margin = '2% auto';
-  modalContent.style.borderRadius = '12px';
-  modalContent.style.zIndex = '';
-  
-  fullscreenBtn.textContent = '⛶';
-  fullscreenBtn.title = 'Tela cheia';
+  const modalContent = modal.querySelector(".modal-content");
+  modalContent.style.position = "";
+  modalContent.style.top = "";
+  modalContent.style.left = "";
+  modalContent.style.width = "95%";
+  modalContent.style.height = "90%";
+  modalContent.style.margin = "2% auto";
+  modalContent.style.borderRadius = "12px";
+  modalContent.style.zIndex = "";
+
+  fullscreenBtn.textContent = "⛶";
+  fullscreenBtn.title = "Tela cheia";
   isFullscreen = false;
-  
+
   if (monacoEditor) {
     setTimeout(() => monacoEditor.layout(), 100);
   }
@@ -414,34 +432,38 @@ function exitFullscreen() {
  * Processa os arquivos de metadados e recursos para exibição inicial.
  */
 function processFile(fileName, content) {
-    const resultDiv = document.createElement("div");
-    resultDiv.className = "result-section";
-    let processedContent = "";
-    let title = "";
+  const resultDiv = document.createElement("div");
+  resultDiv.className = "result-section";
+  let processedContent = "";
+  let title = "";
 
-    try {
-        if (fileName === "contentmetadata.md") {
-            title = "📋 Metadados do Conteúdo (contentmetadata.md)";
-            const decoded = atob(content.trim());
-            processedContent = `<div class="code-block">${escapeHtml(decoded)}</div>`;
-        } else if (fileName === "resources.cnt") {
-            title = "📦 Recursos do Pacote (resources.cnt)";
-            const decoded = atob(content.trim());
-            const jsonData = JSON.parse(decoded);
-            resourcesCntDecoded = JSON.stringify(jsonData, null, 2);
-            processedContent = `<div class="json-viewer">${formatPackageInfo(jsonData)}</div>`;
-        }
-
-        if (title) {
-            resultDiv.innerHTML = `<div class="result-title">${title}</div>${processedContent}`;
-            results.appendChild(resultDiv);
-        }
-    } catch (error) {
-        resultDiv.innerHTML = `<div class="result-title error">❌ Erro ao processar ${fileName}</div>
-                               <div class="error">Erro: ${error.message}</div>
-                               <div class="code-block">${escapeHtml(String(content).substring(0, 500))}...</div>`;
-        results.appendChild(resultDiv);
+  try {
+    if (fileName === "contentmetadata.md") {
+      title = "📋 Metadados do Conteúdo (contentmetadata.md)";
+      const decoded = atob(content.trim());
+      processedContent = `<div class="code-block">${escapeHtml(decoded)}</div>`;
+    } else if (fileName === "resources.cnt") {
+      title = "📦 Recursos do Pacote (resources.cnt)";
+      const decoded = atob(content.trim());
+      const jsonData = JSON.parse(decoded);
+      resourcesCntDecoded = JSON.stringify(jsonData, null, 2);
+      processedContent = `<div class="json-viewer">${formatPackageInfo(
+        jsonData
+      )}</div>`;
     }
+
+    if (title) {
+      resultDiv.innerHTML = `<div class="result-title">${title}</div>${processedContent}`;
+      results.appendChild(resultDiv);
+    }
+  } catch (error) {
+    resultDiv.innerHTML = `<div class="result-title error">❌ Erro ao processar ${fileName}</div>
+                               <div class="error">Erro: ${error.message}</div>
+                               <div class="code-block">${escapeHtml(
+                                 String(content).substring(0, 500)
+                               )}...</div>`;
+    results.appendChild(resultDiv);
+  }
 }
 
 /**
@@ -453,10 +475,16 @@ function formatPackageInfo(data) {
     html += "<h5>📋 Recursos encontrados:</h5>";
     html += '<ul class="script-list">';
     data.resources.forEach((resource) => {
-      const urlDataAttr = resource.additionalAttributes.url ? ` data-resource-url="${resource.additionalAttributes.url.attributeValues}"` : '';
+      const urlDataAttr = resource.additionalAttributes.url
+        ? ` data-resource-url="${resource.additionalAttributes.url.attributeValues}"`
+        : "";
       html += `
-              <li class="script-item" data-resource-id="${resource.id}" data-resource-type="${resource.resourceType}"${urlDataAttr}>
-                  <div class="script-name">${resource.displayName || resource.name}</div>
+              <li class="script-item" data-resource-id="${
+                resource.id
+              }" data-resource-type="${resource.resourceType}"${urlDataAttr}>
+                  <div class="script-name">${
+                    resource.displayName || resource.name
+                  }</div>
                   <div class="script-type">
                       Tipo: ${resource.resourceType} |
                       Versão: ${resource.semanticVersion || resource.version} |
@@ -465,7 +493,8 @@ function formatPackageInfo(data) {
               </li>`;
     });
     html += "</ul>";
-    html += '<p style="margin-top: 15px; color: #666; font-style: italic;">💡 Clique em qualquer recurso para visualizar seu conteúdo no editor. Recursos do tipo URL serão abertos em nova janela</p>';
+    html +=
+      '<p style="margin-top: 15px; color: #666; font-style: italic;">💡 Clique em qualquer recurso para visualizar seu conteúdo no editor. Recursos do tipo URL serão abertos em nova janela</p>';
   }
   return html;
 }
@@ -484,7 +513,7 @@ function escapeHtml(text) {
  */
 function downloadResources() {
   if (!resourcesCntDecoded) {
-    alert('Nenhum recurso processado para download.');
+    alert("Nenhum recurso processado para download.");
     return;
   }
 
@@ -493,47 +522,59 @@ function downloadResources() {
   const tasks = [];
 
   if (packageInfo.resources) {
-    packageInfo.resources.forEach(resource => {
+    packageInfo.resources.forEach((resource) => {
       const id = resource.id;
       // Sanitiza o nome para ser seguro para nomes de arquivo/pasta
-      const name = (resource.displayName || resource.name || id).replace(/[\s/\\?%*:|"<>]/g, '_');
-      const content = getFileContent(id + '_content');
-      
+      const name = (resource.displayName || resource.name || id).replace(
+        /[\s/\\?%*:|"<>]/g,
+        "_"
+      );
+      const content = getFileContent(id + "_content");
+
       if (!content) return;
 
       // Verifica se o recurso é uma ScriptCollection ou outro tipo de arquivo compactado
-      if (resource.resourceType === 'ScriptCollection' || resource.contentType.includes('zip') || resource.contentType.includes('octet-stream')) {
+      if (
+        resource.resourceType === "ScriptCollection" ||
+        resource.contentType.includes("zip") ||
+        resource.contentType.includes("octet-stream")
+      ) {
         const inner = new JSZip();
-        const task = inner.loadAsync(content).then(innerZip => {
-          // Se for um ZIP válido (ScriptCollection), extrai os arquivos para uma pasta
-          const innerTasks = [];
-          innerZip.forEach((relPath, entry) => {
-            if (!entry.dir) {
-              innerTasks.push(entry.async('arraybuffer').then(data => {
-                outZip.file(name + '/' + relPath, data);
-              }));
-            }
+        const task = inner
+          .loadAsync(content)
+          .then((innerZip) => {
+            // Se for um ZIP válido (ScriptCollection), extrai os arquivos para uma pasta
+            const innerTasks = [];
+            innerZip.forEach((relPath, entry) => {
+              if (!entry.dir) {
+                innerTasks.push(
+                  entry.async("arraybuffer").then((data) => {
+                    outZip.file(name + "/" + relPath, data);
+                  })
+                );
+              }
+            });
+            return Promise.all(innerTasks);
+          })
+          .catch(() => {
+            // Se não for um ZIP (provavelmente um recurso binário), salva o arquivo diretamente
+            outZip.file(name, content);
           });
-          return Promise.all(innerTasks);
-        }).catch(() => {
-          // Se não for um ZIP (provavelmente um recurso binário), salva o arquivo diretamente
-          outZip.file(name, content);
-        });
         tasks.push(task);
       } else {
         // Para outros tipos de recursos (XML, Groovy, etc.), adiciona o conteúdo diretamente
-        let fileExtension = '.txt'; // Extensão padrão
+        let fileExtension = ".txt"; // Extensão padrão
         const resourceName = resource.name || resource.displayName;
         const extensionMatch = resourceName.match(/\.([^.]+)$/);
         if (extensionMatch) {
-            fileExtension = `.${extensionMatch[1]}`;
+          fileExtension = `.${extensionMatch[1]}`;
         } else if (resource.contentType) {
-            const ct = resource.contentType;
-            if (ct.includes('groovy')) fileExtension = '.groovy';
-            else if (ct.includes('javascript')) fileExtension = '.js';
-            else if (ct.includes('xml')) fileExtension = '.xml';
+          const ct = resource.contentType;
+          if (ct.includes("groovy")) fileExtension = ".groovy";
+          else if (ct.includes("javascript")) fileExtension = ".js";
+          else if (ct.includes("xml")) fileExtension = ".xml";
         }
-        outZip.file(`${name}${extensionMatch ? '' : fileExtension}`, content);
+        outZip.file(`${name}${extensionMatch ? "" : fileExtension}`, content);
       }
     });
   }
@@ -541,22 +582,27 @@ function downloadResources() {
   Promise.all(tasks).then(() => {
     // Adiciona os metadados decodificados para conveniência
     try {
-        const metadataContent = getFileContent('contentmetadata.md');
-        if(metadataContent) {
-            const decodedMetadata = atob(metadataContent.trim());
-            outZip.file('contentmetadata_decoded.md', decodedMetadata);
-        }
-    } catch(e) { console.error("Erro ao decodificar metadados para o ZIP", e); }
-    
+      const metadataContent = getFileContent("contentmetadata.md");
+      if (metadataContent) {
+        const decodedMetadata = atob(metadataContent.trim());
+        outZip.file("contentmetadata_decoded.md", decodedMetadata);
+      }
+    } catch (e) {
+      console.error("Erro ao decodificar metadados para o ZIP", e);
+    }
+
     if (resourcesCntDecoded) {
-        outZip.file('resources_decoded.json', resourcesCntDecoded);
+      outZip.file("resources_decoded.json", resourcesCntDecoded);
     }
 
     // Gera o ZIP final e inicia o download
-    outZip.generateAsync({ type: 'blob' }).then(blob => {
-      const a = document.createElement('a');
+    outZip.generateAsync({ type: "blob" }).then((blob) => {
+      const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = 'decoded_sap_cpi_package.zip';
+
+      const decodedName = originalZipName.replace(/\.zip$/i, "_decoded.zip");
+      a.download = decodedName;
+
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
