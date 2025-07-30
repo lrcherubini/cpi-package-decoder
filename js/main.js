@@ -116,11 +116,35 @@ copyBtn.addEventListener("click", () => {
 });
 
 // Format/Pretty Print button
+function prettyPrintXML(xml) {
+  const PADDING = "  ";
+  xml = xml.replace(/(>)(<)(\/?)/g, "$1\n$2$3");
+  let formatted = "";
+  let pad = 0;
+  xml.split(/\n/).forEach((node) => {
+    if (node.match(/^<\/.+/)) {
+      pad -= 1;
+    }
+    formatted += PADDING.repeat(pad) + node + "\n";
+    if (node.match(/^<[^!?]+[^\/]>/) && !node.match(/<\/.+>/)) {
+      pad += 1;
+    }
+  });
+  return formatted.trim();
+}
+
 formatBtn.addEventListener("click", () => {
   if (monacoEditor) {
-    const action = monacoEditor.getAction("editor.action.formatDocument");
-    if (action) {
-      action.run();
+    const model = monacoEditor.getModel();
+    const language = model ? model.getLanguageId() : "";
+    if (language === "xml") {
+      const formatted = prettyPrintXML(monacoEditor.getValue());
+      monacoEditor.setValue(formatted);
+    } else {
+      const action = monacoEditor.getAction("editor.action.formatDocument");
+      if (action) {
+        action.run();
+      }
     }
   }
 });
@@ -326,7 +350,7 @@ function loadContentIntoMonaco(content, resourceName) {
  * Detecta a linguagem baseada no nome do arquivo
  */
 function detectLanguage(fileName) {
-  const ext = fileName.toLowerCase().split(".").pop();
+  const ext = fileName.split(".").pop().toLowerCase().trim();
   const languageMap = {
     groovy: "groovy",
     gsh: "groovy",
