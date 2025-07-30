@@ -1,9 +1,9 @@
 const uploadArea = document.getElementById("uploadArea");
 const fileInput = document.getElementById("fileInput");
 const results = document.getElementById("results");
-let fileContents = {};
+let fileContents = {}; // Armazena o conteúdo dos arquivos do ZIP principal
 
-// Drag and drop functionality
+// --- Funcionalidades de Drag and Drop e Seleção de Arquivo (sem alterações) ---
 uploadArea.addEventListener("dragover", (e) => {
   e.preventDefault();
   uploadArea.classList.add("dragover");
@@ -16,9 +16,8 @@ uploadArea.addEventListener("dragleave", () => {
 uploadArea.addEventListener("drop", (e) => {
   e.preventDefault();
   uploadArea.classList.remove("dragover");
-  const files = e.dataTransfer.files;
-  if (files.length > 0) {
-    handleZipFile(files[0]);
+  if (e.dataTransfer.files.length > 0) {
+    handleZipFile(e.dataTransfer.files[0]);
   }
 });
 
@@ -28,25 +27,26 @@ fileInput.addEventListener("change", (e) => {
   }
 });
 
+// --- Listener de Eventos Generalizado ---
 results.addEventListener("click", function (e) {
   const scriptItem = e.target.closest(".script-item");
   if (scriptItem && scriptItem.dataset.resourceId) {
     const resourceId = scriptItem.dataset.resourceId;
-    const resourceType = scriptItem.dataset.resourceType;
-    if (resourceType === "ScriptCollection") {
-      displayScriptCollectionContent(resourceId, scriptItem);
-    }
+    toggleResourceContent(resourceId, scriptItem); // Chama uma função genérica
   }
 });
 
+/**
+ * Processa o arquivo ZIP principal carregado pelo usuário.
+ */
 function handleZipFile(file) {
   results.innerHTML = "";
-  fileContents = {}; // Limpa o conteúdo anterior
+  fileContents = {};
   const zip = new JSZip();
   zip.loadAsync(file).then((zip) => {
     const promises = [];
     zip.forEach((relativePath, zipEntry) => {
-      // Define o tipo de conteúdo com base no nome do arquivo
+      // Diferencia o conteúdo binário (_content) do conteúdo de texto
       const fileType = zipEntry.name.endsWith("_content")
         ? "arraybuffer"
         : "string";
@@ -56,6 +56,7 @@ function handleZipFile(file) {
       promises.push(promise);
     });
 
+    // Após carregar todos os arquivos, processa os principais
     Promise.all(promises).then(() => {
       if (fileContents["resources.cnt"]) {
         processFile("resources.cnt", fileContents["resources.cnt"]);
@@ -67,89 +68,114 @@ function handleZipFile(file) {
   });
 }
 
-function displayScriptCollectionContent(resourceId, scriptItemElement) {
-  const contentFileName = resourceId + "_content";
-  const innerZipContent = fileContents[contentFileName]; // Agora é um ArrayBuffer
+/**
+ * Controla a exibição (mostrar/ocultar) do conteúdo de um recurso.
+ */
+function toggleResourceContent(resourceId, scriptItemElement) {
+  const contentArea = scriptItemElement.querySelector(".script-content-area");
+  const isVisible = contentArea.style.display === "block";
 
-  let contentDiv = scriptItemElement.querySelector(".script-content-area");
-  if (contentDiv.style.display === "block") {
-    contentDiv.style.display = "none";
+  // Se estiver visível, oculta e para a execução
+  if (isVisible) {
+    contentArea.style.display = "none";
     return;
   }
 
-  if (innerZipContent) {
-    const zip = new JSZip();
-    zip
-      .loadAsync(innerZipContent) // Carrega o ArrayBuffer diretamente
-      .then(function (zip) {
-        const scriptPromises = [];
-        zip.forEach(function (relativePath, zipEntry) {
-          if (!zipEntry.dir) {
-            const scriptPromise = zipEntry
-              .async("string")
-              .then(function (scriptContent) {
-                return `
-                  <div class="result-section">
-                      <div class="result-title">📄 ${zipEntry.name}</div>
-                      <div class="code-block">${escapeHtml(
-                        scriptContent
-                      )}</div>
-                  </div>`;
-              });
-            scriptPromises.push(scriptPromise);
-          }
-        });
-        return Promise.all(scriptPromises);
-      })
-      .then(function (scriptsHtml) {
-        contentDiv.innerHTML =
-          '<div class="inner-scripts">' + scriptsHtml.join("") + "</div>";
-        contentDiv.style.display = "block";
-      })
-      .catch(function (err) {
-        contentDiv.innerHTML = `<div class="error">❌ Erro ao descompactar o ScriptCollection: ${err.message}</div>`;
-        contentDiv.style.display = "block";
-      });
+  // Se o conteúdo já foi carregado antes, apenas o exibe
+  if (contentArea.innerHTML.trim() !== "") {
+    contentArea.style.display = "block";
+    return;
   }
+
+  // Se não, carrega e exibe o conteúdo
+  displayResourceContent(resourceId, contentArea);
 }
 
+/**
+ * Exibe o conteúdo de um recurso, tentando descompactá-lo ou mostrá-lo como texto.
+ */
+function displayResourceContent(resourceId, contentArea) {
+  const contentFileName = resourceId + "_content";
+  const content = fileContents[contentFileName];
+
+  if (!content) {
+    contentArea.innerHTML =
+      '<div class="error">Nenhum conteúdo associado a este recurso.</div>';
+    contentArea.style.display = "block";
+    return;
+  }
+
+  const zip = new JSZip();
+  // Tenta carregar o conteúdo como um ZIP
+  zip.loadAsync(content)
+    .then(innerZip => {
+      // Se for um ZIP (como ScriptCollection), extrai os arquivos
+      const scriptPromises = [];
+      innerZip.forEach((relativePath, zipEntry) => {
+        if (!zipEntry.dir) {
+          const scriptPromise = zipEntry.async("string").then(scriptContent =>
+            `<div class="result-section">
+                <div class="result-title">📄 ${zipEntry.name}</div>
+                <div class="code-block">${escapeHtml(scriptContent)}</div>
+             </div>`
+          );
+          scriptPromises.push(scriptPromise);
+        }
+      });
+      return Promise.all(scriptPromises);
+    })
+    .then(scriptsHtml => {
+      contentArea.innerHTML = '<div class="inner-scripts">' + scriptsHtml.join("") + '</div>';
+      contentArea.style.display = "block";
+    })
+    .catch(() => {
+      // Se não for um ZIP, trata como texto simples (ex: script Groovy, XML)
+      const reader = new FileReader();
+      reader.onload = function(e) {
+          contentArea.innerHTML = `<div class="code-block">${escapeHtml(e.target.result)}</div>`;
+          contentArea.style.display = "block";
+      };
+      // Usa um Blob para ler o ArrayBuffer como texto
+      reader.readAsText(new Blob([content]));
+    });
+}
+
+/**
+ * Processa os arquivos de metadados e recursos para exibição inicial.
+ */
 function processFile(fileName, content) {
-  const resultDiv = document.createElement("div");
-  resultDiv.className = "result-section";
+    const resultDiv = document.createElement("div");
+    resultDiv.className = "result-section";
+    let processedContent = "";
+    let title = "";
 
-  let processedContent = "";
-  let title = "";
+    try {
+        if (fileName === "contentmetadata.md") {
+            title = "📋 Metadados do Conteúdo (contentmetadata.md)";
+            const decoded = atob(content.trim());
+            processedContent = `<div class="code-block">${escapeHtml(decoded)}</div>`;
+        } else if (fileName === "resources.cnt") {
+            title = "📦 Recursos do Pacote (resources.cnt)";
+            const decoded = atob(content.trim());
+            const jsonData = JSON.parse(decoded);
+            processedContent = `<div class="json-viewer">${formatPackageInfo(jsonData)}</div>`;
+        }
 
-  try {
-    if (fileName === "contentmetadata.md") {
-      title = "📋 Metadados do Conteúdo (contentmetadata.md)";
-      const decoded = atob(content.trim());
-      processedContent = `<div class="code-block">${escapeHtml(decoded)}</div>`;
-    } else if (fileName === "resources.cnt") {
-      title = "📦 Recursos do Pacote (resources.cnt)";
-      const decoded = atob(content.trim());
-      const jsonData = JSON.parse(decoded);
-      processedContent = `<div class="json-viewer">
-                                <h4>Informações do Pacote:</h4>
-                                ${formatPackageInfo(jsonData)}
-                           </div>`;
-    }
-
-    if (title) {
-        resultDiv.innerHTML = `<div class="result-title">${title}</div>${processedContent}`;
+        if (title) {
+            resultDiv.innerHTML = `<div class="result-title">${title}</div>${processedContent}`;
+            results.appendChild(resultDiv);
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="result-title error">❌ Erro ao processar ${fileName}</div>
+                               <div class="error">Erro: ${error.message}</div>
+                               <div class="code-block">${escapeHtml(String(content).substring(0, 500))}...</div>`;
         results.appendChild(resultDiv);
     }
-    
-  } catch (error) {
-    resultDiv.innerHTML = `<div class="result-title error">❌ Erro ao processar ${fileName}</div>
-                               <div class="error">Erro: ${error.message}</div>
-                               <div class="code-block">${escapeHtml(
-                                 String(content).substring(0, 500)
-                               )}...</div>`;
-    results.appendChild(resultDiv);
-  }
 }
 
+/**
+ * Formata as informações dos recursos para exibição em uma lista.
+ */
 function formatPackageInfo(data) {
   let html = "";
   if (data.resources) {
@@ -157,35 +183,24 @@ function formatPackageInfo(data) {
     html += '<ul class="script-list">';
     data.resources.forEach((resource) => {
       html += `
-              <li class="script-item" 
-                  data-resource-id="${resource.id}" 
-                  data-resource-name="${resource.name}" 
-                  data-resource-type="${resource.resourceType}">
-                  <div class="script-name-wrapper">
-                    <div class="script-name">${
-                      resource.displayName || resource.name
-                    }</div>
-                    <div class="script-type">
-                        Tipo: ${resource.resourceType} |
-                        Versão: ${resource.semanticVersion || resource.version} |
-                        Modificado por: ${resource.modifiedBy}
-                    </div>
+              <li class="script-item" data-resource-id="${resource.id}">
+                  <div class="script-name">${resource.displayName || resource.name}</div>
+                  <div class="script-type">
+                      Tipo: ${resource.resourceType} |
+                      Versão: ${resource.semanticVersion || resource.version} |
+                      Modificado por: ${resource.modifiedBy}
                   </div>
-                  ${
-                    resource.additionalAttributes &&
-                    resource.additionalAttributes.Description
-                      ? `<div class="script-description">${resource.additionalAttributes.Description.attributeValues[0]}</div>`
-                      : ""
-                  }
                   <div class="script-content-area" style="display: none;"></div>
-              </li>
-          `;
+              </li>`;
     });
     html += "</ul>";
   }
   return html;
 }
 
+/**
+ * Escapa caracteres HTML para exibição segura.
+ */
 function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
