@@ -205,7 +205,22 @@ input[type="file"] {
   font-size: 14px;
 }
 
+.file-select {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 14px;
+  display: none;
+}
+
 .language-select option {
+  background: #0066cc;
+  color: white;
+}
+
+.file-select option {
   background: #0066cc;
   color: white;
 }
@@ -272,7 +287,7 @@ input[type="file"] {
     gap: 5px;
   }
   
-  .control-btn, .language-select {
+  .control-btn, .language-select, .file-select {
     font-size: 14px;
     padding: 6px 8px;
   }
