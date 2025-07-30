@@ -9,6 +9,7 @@ const fileSelect = document.getElementById("fileSelect");
 const formatBtn = document.getElementById("formatBtn");
 const copyBtn = document.getElementById("copyBtn");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
+const downloadBtn = document.getElementById("downloadBtn");
 
 let fileContents = {}; // Armazena o conteúdo dos arquivos do ZIP principal
 let resourcesCntDecoded = '';
@@ -108,6 +109,7 @@ formatBtn.addEventListener("click", () => {
 
 // Fullscreen button
 fullscreenBtn.addEventListener("click", toggleFullscreen);
+downloadBtn.addEventListener("click", downloadResources);
 
 // ESC key to close modal
 document.addEventListener("keydown", (e) => {
@@ -141,6 +143,7 @@ function handleZipFile(file) {
   results.innerHTML = "";
   fileContents = {};
   resourcesCntDecoded = '';
+  downloadBtn.parentElement.style.display = 'none';
   const zip = new JSZip();
   zip.loadAsync(file).then((zip) => {
     const promises = [];
@@ -163,6 +166,7 @@ function handleZipFile(file) {
       if (fileContents["contentmetadata.md"]) {
         processFile("contentmetadata.md", fileContents["contentmetadata.md"]);
       }
+      downloadBtn.parentElement.style.display = 'block';
     });
   });
 }
@@ -215,7 +219,7 @@ function initializeMonacoEditor(content, resourceName) {
     language: 'javascript',
     theme: 'vs-dark',
     automaticLayout: true,
-    readOnly: false,
+    readOnly: true,
     minimap: { enabled: true },
     scrollBeyondLastLine: false,
     fontSize: 14,
@@ -456,4 +460,53 @@ function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
+}
+
+function downloadResources() {
+  if (!resourcesCntDecoded) {
+    alert('Nenhum recurso processado para download.');
+    return;
+  }
+
+  const packageInfo = JSON.parse(resourcesCntDecoded);
+  const outZip = new JSZip();
+  const tasks = [];
+
+  if (packageInfo.resources) {
+    packageInfo.resources.forEach(resource => {
+      const id = resource.id;
+      const name = (resource.displayName || resource.name || id).replace(/\s+/g, '_');
+      const content = fileContents[id + '_content'];
+      if (!content) return;
+
+      const inner = new JSZip();
+      const task = inner.loadAsync(content).then(() => {
+        const innerTasks = [];
+        inner.forEach((relPath, entry) => {
+          if (!entry.dir) {
+            innerTasks.push(entry.async('arraybuffer').then(data => {
+              outZip.file(name + '/' + relPath, data);
+            }));
+          }
+        });
+        return Promise.all(innerTasks);
+      }).catch(() => {
+        outZip.file(name, content);
+      });
+
+      tasks.push(task);
+    });
+  }
+
+  Promise.all(tasks).then(() => {
+    outZip.generateAsync({ type: 'blob' }).then(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'decoded_resources.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    });
+  });
 }
