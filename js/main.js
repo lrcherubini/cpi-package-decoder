@@ -5,12 +5,14 @@ const modal = document.getElementById("editorModal");
 const modalTitle = document.getElementById("modalTitle");
 const closeModal = document.getElementById("closeModal");
 const languageSelect = document.getElementById("languageSelect");
+const fileSelect = document.getElementById("fileSelect");
 const copyBtn = document.getElementById("copyBtn");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
 
 let fileContents = {}; // Armazena o conteúdo dos arquivos do ZIP principal
 let monacoEditor = null;
 let isFullscreen = false;
+let currentFiles = {};
 
 // Initialize Monaco Editor
 require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
@@ -57,6 +59,13 @@ modal.addEventListener("click", (e) => {
 languageSelect.addEventListener("change", (e) => {
   if (monacoEditor) {
     monaco.editor.setModelLanguage(monacoEditor.getModel(), e.target.value);
+  }
+});
+
+fileSelect.addEventListener("change", (e) => {
+  const fileName = e.target.value;
+  if (currentFiles[fileName]) {
+    setEditorContent(currentFiles[fileName], fileName);
   }
 });
 
@@ -189,12 +198,15 @@ function initializeMonacoEditor(content, resourceName) {
  * Carrega o conteúdo no Monaco Editor
  */
 function loadContentIntoMonaco(content, resourceName) {
+  currentFiles = {};
+  fileSelect.style.display = 'none';
+  fileSelect.innerHTML = '';
+
   const zip = new JSZip();
-  
+
   // Tenta carregar o conteúdo como um ZIP
   zip.loadAsync(content)
     .then(innerZip => {
-      // Se for um ZIP (como ScriptCollection), mostra lista de arquivos
       const files = [];
       innerZip.forEach((relativePath, zipEntry) => {
         if (!zipEntry.dir) {
@@ -203,28 +215,27 @@ function loadContentIntoMonaco(content, resourceName) {
       });
 
       if (files.length === 1) {
-        // Se há apenas um arquivo, mostra diretamente
         return innerZip.file(files[0]).async("string").then(scriptContent => {
-          const language = detectLanguage(files[0]);
-          languageSelect.value = language;
-          monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
-          monacoEditor.setValue(scriptContent);
+          setEditorContent(scriptContent, files[0]);
         });
       } else if (files.length > 1) {
-        // Se há múltiplos arquivos, cria um índice
-        let indexContent = `// ScriptCollection: ${resourceName}\n// Arquivos encontrados:\n\n`;
-        const filePromises = files.map(fileName => {
+        const promises = files.map(fileName => {
           return innerZip.file(fileName).async("string").then(scriptContent => {
-            return `//==========================================\n// Arquivo: ${fileName}\n//==========================================\n\n${scriptContent}\n\n`;
+            currentFiles[fileName] = scriptContent;
           });
         });
-        
-        return Promise.all(filePromises).then(fileContents => {
-          const combinedContent = indexContent + fileContents.join('');
-          const language = detectLanguage(files[0]);
-          languageSelect.value = language;
-          monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
-          monacoEditor.setValue(combinedContent);
+
+        return Promise.all(promises).then(() => {
+          fileSelect.innerHTML = '';
+          files.forEach(fn => {
+            const opt = document.createElement('option');
+            opt.value = fn;
+            opt.textContent = fn;
+            fileSelect.appendChild(opt);
+          });
+          fileSelect.style.display = 'inline-block';
+          fileSelect.value = files[0];
+          setEditorContent(currentFiles[files[0]], files[0]);
         });
       }
     })
@@ -233,10 +244,7 @@ function loadContentIntoMonaco(content, resourceName) {
       const reader = new FileReader();
       reader.onload = function(e) {
         const textContent = e.target.result;
-        const language = detectLanguage(resourceName);
-        languageSelect.value = language;
-        monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
-        monacoEditor.setValue(textContent);
+        setEditorContent(textContent, resourceName);
       };
       reader.readAsText(new Blob([content]));
     });
@@ -265,6 +273,13 @@ function detectLanguage(fileName) {
   return languageMap[ext] || 'plaintext';
 }
 
+function setEditorContent(content, fileName) {
+  const language = detectLanguage(fileName);
+  languageSelect.value = language;
+  monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
+  monacoEditor.setValue(content);
+}
+
 /**
  * Fecha o modal do editor
  */
@@ -272,7 +287,11 @@ function closeEditorModal() {
   modal.style.display = "none";
   modal.classList.remove("show");
   modal.querySelector('.modal-content').classList.remove("show");
-  
+
+  fileSelect.style.display = 'none';
+  fileSelect.innerHTML = '';
+  currentFiles = {};
+
   if (isFullscreen) {
     exitFullscreen();
   }
