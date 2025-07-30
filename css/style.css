@@ -338,3 +338,10 @@ input[type="file"] {
     opacity: 1;
   }
 }
+
+/* BPMN Viewer frame */
+#bpmnFrame {
+  flex: 1;
+  width: 100%;
+  border: none;
+}
