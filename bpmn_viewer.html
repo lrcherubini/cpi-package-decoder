@@ -15,12 +15,12 @@
 <script>
 (function(){
   const params = new URLSearchParams(window.location.search);
-  const data = params.get('data');
-  if (!data) {
-    document.body.innerHTML = '<p>No BPMN data provided.</p>';
-    return;
-  }
-  const xml = atob(data);
+  const dataParam = params.get('data');
+  if (!dataParam) {
+      document.body.innerHTML = '<p>No BPMN data provided.</p>';
+      return;
+    }
+    const xml = atob(decodeURIComponent(dataParam));
   const viewer = new BpmnJS({ container: '#canvas' });
   viewer.importXML(xml).then(function(){
     viewer.get('canvas').zoom('fit-viewport');
