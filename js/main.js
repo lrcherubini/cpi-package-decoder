@@ -110,6 +110,14 @@ results.addEventListener("click", function (e) {
   if (scriptItem && scriptItem.dataset.resourceId) {
     const resourceId = scriptItem.dataset.resourceId;
     const resourceName = scriptItem.querySelector('.script-name').textContent;
+    const resourceType = scriptItem.dataset.resourceType;
+    const resourceUrl = scriptItem.dataset.resourceUrl;
+
+    if (resourceType && resourceType.toUpperCase() === 'URL' && resourceUrl) {
+      window.open(resourceUrl, '_blank');
+      return;
+    }
+
     openResourceInMonaco(resourceId, resourceName);
   }
 });
@@ -390,8 +398,9 @@ function formatPackageInfo(data) {
     html += "<h5>📋 Recursos encontrados:</h5>";
     html += '<ul class="script-list">';
     data.resources.forEach((resource) => {
+      const urlDataAttr = resource.url ? ` data-resource-url="${resource.url}"` : '';
       html += `
-              <li class="script-item" data-resource-id="${resource.id}">
+              <li class="script-item" data-resource-id="${resource.id}" data-resource-type="${resource.resourceType}"${urlDataAttr}>
                   <div class="script-name">${resource.displayName || resource.name}</div>
                   <div class="script-type">
                       Tipo: ${resource.resourceType} |
@@ -401,7 +410,7 @@ function formatPackageInfo(data) {
               </li>`;
     });
     html += "</ul>";
-    html += '<p style="margin-top: 15px; color: #666; font-style: italic;">💡 Clique em qualquer recurso para visualizar seu conteúdo no editor</p>';
+    html += '<p style="margin-top: 15px; color: #666; font-style: italic;">💡 Clique em qualquer recurso para visualizar seu conteúdo no editor. Recursos do tipo URL serão abertos em nova janela</p>';
   }
   return html;
 }
