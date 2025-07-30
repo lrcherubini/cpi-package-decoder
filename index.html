@@ -54,6 +54,32 @@
       </div>
     </div>
 
+    <!-- Modal for Monaco Editor -->
+    <div id="editorModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modalTitle">Conteúdo do Arquivo</h3>
+          <div class="modal-controls">
+            <select id="languageSelect" class="language-select">
+              <option value="javascript">JavaScript</option>
+              <option value="groovy">Groovy</option>
+              <option value="xml">XML</option>
+              <option value="json">JSON</option>
+              <option value="sql">SQL</option>
+              <option value="java">Java</option>
+              <option value="python">Python</option>
+              <option value="plaintext">Plain Text</option>
+            </select>
+            <button id="copyBtn" class="control-btn" title="Copiar conteúdo">📋</button>
+            <button id="fullscreenBtn" class="control-btn" title="Tela cheia">⛶</button>
+            <button id="closeModal" class="close-btn">&times;</button>
+          </div>
+        </div>
+        <div id="monacoEditor" class="monaco-container"></div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
     <script src="lib/jszip.min.js"></script>
     <script src="js/main.js"></script>
   </body>

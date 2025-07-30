@@ -1,9 +1,25 @@
 const uploadArea = document.getElementById("uploadArea");
 const fileInput = document.getElementById("fileInput");
 const results = document.getElementById("results");
-let fileContents = {}; // Armazena o conteúdo dos arquivos do ZIP principal
+const modal = document.getElementById("editorModal");
+const modalTitle = document.getElementById("modalTitle");
+const closeModal = document.getElementById("closeModal");
+const languageSelect = document.getElementById("languageSelect");
+const copyBtn = document.getElementById("copyBtn");
+const fullscreenBtn = document.getElementById("fullscreenBtn");
 
-// --- Funcionalidades de Drag and Drop e Seleção de Arquivo (sem alterações) ---
+let fileContents = {}; // Armazena o conteúdo dos arquivos do ZIP principal
+let monacoEditor = null;
+let isFullscreen = false;
+
+// Initialize Monaco Editor
+require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+
+require(['vs/editor/editor.main'], function () {
+  console.log('Monaco Editor loaded successfully');
+});
+
+// --- Funcionalidades de Drag and Drop e Seleção de Arquivo ---
 uploadArea.addEventListener("dragover", (e) => {
   e.preventDefault();
   uploadArea.classList.add("dragover");
@@ -27,12 +43,65 @@ fileInput.addEventListener("change", (e) => {
   }
 });
 
+// --- Modal Event Listeners ---
+closeModal.addEventListener("click", closeEditorModal);
+
+// Close modal when clicking outside
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) {
+    closeEditorModal();
+  }
+});
+
+// Language selector change
+languageSelect.addEventListener("change", (e) => {
+  if (monacoEditor) {
+    monaco.editor.setModelLanguage(monacoEditor.getModel(), e.target.value);
+  }
+});
+
+// Copy button
+copyBtn.addEventListener("click", () => {
+  if (monacoEditor) {
+    const content = monacoEditor.getValue();
+    navigator.clipboard.writeText(content).then(() => {
+      copyBtn.textContent = "✅";
+      setTimeout(() => {
+        copyBtn.textContent = "📋";
+      }, 2000);
+    }).catch(() => {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = content;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      copyBtn.textContent = "✅";
+      setTimeout(() => {
+        copyBtn.textContent = "📋";
+      }, 2000);
+    });
+  }
+});
+
+// Fullscreen button
+fullscreenBtn.addEventListener("click", toggleFullscreen);
+
+// ESC key to close modal
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && modal.style.display === "block") {
+    closeEditorModal();
+  }
+});
+
 // --- Listener de Eventos Generalizado ---
 results.addEventListener("click", function (e) {
   const scriptItem = e.target.closest(".script-item");
   if (scriptItem && scriptItem.dataset.resourceId) {
     const resourceId = scriptItem.dataset.resourceId;
-    toggleResourceContent(resourceId, scriptItem); // Chama uma função genérica
+    const resourceName = scriptItem.querySelector('.script-name').textContent;
+    openResourceInMonaco(resourceId, resourceName);
   }
 });
 
@@ -69,75 +138,195 @@ function handleZipFile(file) {
 }
 
 /**
- * Controla a exibição (mostrar/ocultar) do conteúdo de um recurso.
+ * Abre o conteúdo de um recurso no Monaco Editor
  */
-function toggleResourceContent(resourceId, scriptItemElement) {
-  const contentArea = scriptItemElement.querySelector(".script-content-area");
-  const isVisible = contentArea.style.display === "block";
-
-  // Se estiver visível, oculta e para a execução
-  if (isVisible) {
-    contentArea.style.display = "none";
-    return;
-  }
-
-  // Se o conteúdo já foi carregado antes, apenas o exibe
-  if (contentArea.innerHTML.trim() !== "") {
-    contentArea.style.display = "block";
-    return;
-  }
-
-  // Se não, carrega e exibe o conteúdo
-  displayResourceContent(resourceId, contentArea);
-}
-
-/**
- * Exibe o conteúdo de um recurso, tentando descompactá-lo ou mostrá-lo como texto.
- */
-function displayResourceContent(resourceId, contentArea) {
+function openResourceInMonaco(resourceId, resourceName) {
   const contentFileName = resourceId + "_content";
   const content = fileContents[contentFileName];
 
   if (!content) {
-    contentArea.innerHTML =
-      '<div class="error">Nenhum conteúdo associado a este recurso.</div>';
-    contentArea.style.display = "block";
+    alert('Nenhum conteúdo associado a este recurso.');
     return;
   }
 
+  modalTitle.textContent = `📄 ${resourceName}`;
+  modal.style.display = "block";
+  modal.classList.add("show");
+  modal.querySelector('.modal-content').classList.add("show");
+
+  // Initialize Monaco Editor if not already done
+  if (!monacoEditor) {
+    require(['vs/editor/editor.main'], function () {
+      initializeMonacoEditor(content, resourceName);
+    });
+  } else {
+    loadContentIntoMonaco(content, resourceName);
+  }
+}
+
+/**
+ * Inicializa o Monaco Editor
+ */
+function initializeMonacoEditor(content, resourceName) {
+  monacoEditor = monaco.editor.create(document.getElementById('monacoEditor'), {
+    value: '',
+    language: 'javascript',
+    theme: 'vs-dark',
+    automaticLayout: true,
+    readOnly: false,
+    minimap: { enabled: true },
+    scrollBeyondLastLine: false,
+    fontSize: 14,
+    lineNumbers: 'on',
+    renderWhitespace: 'selection',
+    wordWrap: 'on'
+  });
+
+  loadContentIntoMonaco(content, resourceName);
+}
+
+/**
+ * Carrega o conteúdo no Monaco Editor
+ */
+function loadContentIntoMonaco(content, resourceName) {
   const zip = new JSZip();
+  
   // Tenta carregar o conteúdo como um ZIP
   zip.loadAsync(content)
     .then(innerZip => {
-      // Se for um ZIP (como ScriptCollection), extrai os arquivos
-      const scriptPromises = [];
+      // Se for um ZIP (como ScriptCollection), mostra lista de arquivos
+      const files = [];
       innerZip.forEach((relativePath, zipEntry) => {
         if (!zipEntry.dir) {
-          const scriptPromise = zipEntry.async("string").then(scriptContent =>
-            `<div class="result-section">
-                <div class="result-title">📄 ${zipEntry.name}</div>
-                <div class="code-block">${escapeHtml(scriptContent)}</div>
-             </div>`
-          );
-          scriptPromises.push(scriptPromise);
+          files.push(relativePath);
         }
       });
-      return Promise.all(scriptPromises);
-    })
-    .then(scriptsHtml => {
-      contentArea.innerHTML = '<div class="inner-scripts">' + scriptsHtml.join("") + '</div>';
-      contentArea.style.display = "block";
+
+      if (files.length === 1) {
+        // Se há apenas um arquivo, mostra diretamente
+        return innerZip.file(files[0]).async("string").then(scriptContent => {
+          const language = detectLanguage(files[0]);
+          languageSelect.value = language;
+          monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
+          monacoEditor.setValue(scriptContent);
+        });
+      } else if (files.length > 1) {
+        // Se há múltiplos arquivos, cria um índice
+        let indexContent = `// ScriptCollection: ${resourceName}\n// Arquivos encontrados:\n\n`;
+        const filePromises = files.map(fileName => {
+          return innerZip.file(fileName).async("string").then(scriptContent => {
+            return `//==========================================\n// Arquivo: ${fileName}\n//==========================================\n\n${scriptContent}\n\n`;
+          });
+        });
+        
+        return Promise.all(filePromises).then(fileContents => {
+          const combinedContent = indexContent + fileContents.join('');
+          const language = detectLanguage(files[0]);
+          languageSelect.value = language;
+          monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
+          monacoEditor.setValue(combinedContent);
+        });
+      }
     })
     .catch(() => {
-      // Se não for um ZIP, trata como texto simples (ex: script Groovy, XML)
+      // Se não for um ZIP, trata como texto simples
       const reader = new FileReader();
       reader.onload = function(e) {
-          contentArea.innerHTML = `<div class="code-block">${escapeHtml(e.target.result)}</div>`;
-          contentArea.style.display = "block";
+        const textContent = e.target.result;
+        const language = detectLanguage(resourceName);
+        languageSelect.value = language;
+        monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
+        monacoEditor.setValue(textContent);
       };
-      // Usa um Blob para ler o ArrayBuffer como texto
       reader.readAsText(new Blob([content]));
     });
+}
+
+/**
+ * Detecta a linguagem baseada no nome do arquivo
+ */
+function detectLanguage(fileName) {
+  const ext = fileName.toLowerCase().split('.').pop();
+  const languageMap = {
+    'groovy': 'groovy',
+    'gsh': 'groovy',
+    'js': 'javascript',
+    'javascript': 'javascript',
+    'xml': 'xml',
+    'json': 'json',
+    'java': 'java',
+    'py': 'python',
+    'sql': 'sql',
+    'properties': 'properties',
+    'yaml': 'yaml',
+    'yml': 'yaml'
+  };
+  
+  return languageMap[ext] || 'plaintext';
+}
+
+/**
+ * Fecha o modal do editor
+ */
+function closeEditorModal() {
+  modal.style.display = "none";
+  modal.classList.remove("show");
+  modal.querySelector('.modal-content').classList.remove("show");
+  
+  if (isFullscreen) {
+    exitFullscreen();
+  }
+}
+
+/**
+ * Toggle fullscreen mode
+ */
+function toggleFullscreen() {
+  if (!isFullscreen) {
+    enterFullscreen();
+  } else {
+    exitFullscreen();
+  }
+}
+
+function enterFullscreen() {
+  const modalContent = modal.querySelector('.modal-content');
+  modalContent.style.position = 'fixed';
+  modalContent.style.top = '0';
+  modalContent.style.left = '0';
+  modalContent.style.width = '100vw';
+  modalContent.style.height = '100vh';
+  modalContent.style.margin = '0';
+  modalContent.style.borderRadius = '0';
+  modalContent.style.zIndex = '10001';
+  
+  fullscreenBtn.textContent = '🗗';
+  fullscreenBtn.title = 'Sair da tela cheia';
+  isFullscreen = true;
+  
+  if (monacoEditor) {
+    setTimeout(() => monacoEditor.layout(), 100);
+  }
+}
+
+function exitFullscreen() {
+  const modalContent = modal.querySelector('.modal-content');
+  modalContent.style.position = '';
+  modalContent.style.top = '';
+  modalContent.style.left = '';
+  modalContent.style.width = '95%';
+  modalContent.style.height = '90%';
+  modalContent.style.margin = '2% auto';
+  modalContent.style.borderRadius = '12px';
+  modalContent.style.zIndex = '';
+  
+  fullscreenBtn.textContent = '⛶';
+  fullscreenBtn.title = 'Tela cheia';
+  isFullscreen = false;
+  
+  if (monacoEditor) {
+    setTimeout(() => monacoEditor.layout(), 100);
+  }
 }
 
 /**
@@ -190,10 +379,10 @@ function formatPackageInfo(data) {
                       Versão: ${resource.semanticVersion || resource.version} |
                       Modificado por: ${resource.modifiedBy}
                   </div>
-                  <div class="script-content-area" style="display: none;"></div>
               </li>`;
     });
     html += "</ul>";
+    html += '<p style="margin-top: 15px; color: #666; font-style: italic;">💡 Clique em qualquer recurso para visualizar seu conteúdo no editor</p>';
   }
   return html;
 }
