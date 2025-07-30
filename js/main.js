@@ -122,6 +122,7 @@ function prettyPrintXML(xml) {
   let formatted = "";
   let pad = 0;
   xml.split(/\n/).forEach((node) => {
+    node = node.trim()
     if (node.match(/^<\/.+/)) {
       pad -= 1;
     }
@@ -372,6 +373,7 @@ function detectLanguage(fileName) {
     properties: "properties",
     yaml: "yaml",
     yml: "yaml",
+    wsdl: "xml"
   };
 
   return languageMap[ext] || "plaintext";
