@@ -20,35 +20,32 @@
         <div class="info-box">
           <strong>Como usar:</strong>
           <ol>
-            <li>Extraia o arquivo ZIP exportado do SAP CPI</li>
             <li>
-              Faça upload dos arquivos <code>contentmetadata.md</code> e
-              <code>resources.cnt</code>
+              Faça o upload do arquivo <code>.zip</code> exportado do SAP CPI.
             </li>
             <li>
-              Para scripts específicos, faça upload dos arquivos .groovy ou .js
-              do pacote
+              Os arquivos contidos no pacote serão automaticamente
+              decodificados.
             </li>
           </ol>
         </div>
 
         <div class="upload-area" id="uploadArea">
           <div>
-            <h3>📁 Arraste arquivos aqui ou clique para selecionar</h3>
+            <h3>📁 Arraste o arquivo .zip aqui ou clique para selecionar</h3>
             <button
               class="upload-btn"
               onclick="document.getElementById('fileInput').click()"
             >
-              Selecionar Arquivos
+              Selecionar Arquivo ZIP
             </button>
             <input
               type="file"
               id="fileInput"
-              multiple
-              accept=".md,.cnt,.groovy,.js,.txt"
+              accept=".zip"
             />
             <p style="margin-top: 15px; color: #666">
-              Suporta: contentmetadata.md, resources.cnt, scripts (.groovy, .js)
+              Suporta: Pacotes .zip do SAP CPI
             </p>
           </div>
         </div>

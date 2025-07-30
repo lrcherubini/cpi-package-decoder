@@ -15,22 +15,34 @@ uploadArea.addEventListener("dragleave", () => {
 uploadArea.addEventListener("drop", (e) => {
   e.preventDefault();
   uploadArea.classList.remove("dragover");
-  handleFiles(e.dataTransfer.files);
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    handleFiles(files[0]);
+  }
 });
 
 fileInput.addEventListener("change", (e) => {
-  handleFiles(e.target.files);
+  if (e.target.files.length > 0) {
+    handleFiles(e.target.files[0]);
+  }
 });
 
-function handleFiles(files) {
+function handleFiles(file) {
   results.innerHTML = "";
-
-  Array.from(files).forEach((file) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      processFile(file.name, e.target.result);
-    };
-    reader.readAsText(file);
+  const zip = new JSZip();
+  zip.loadAsync(file).then((zip) => {
+    zip.forEach((relativePath, zipEntry) => {
+      if (
+        zipEntry.name.endsWith(".md") ||
+        zipEntry.name.endsWith(".cnt") ||
+        zipEntry.name.endsWith(".groovy") ||
+        zipEntry.name.endsWith(".js")
+      ) {
+        zipEntry.async("string").then((content) => {
+          processFile(zipEntry.name, content);
+        });
+      }
+    });
   });
 }
 
@@ -99,7 +111,7 @@ function formatPackageInfo(data) {
                               resource.displayName || resource.name
                             }</div>
                             <div class="script-type">
-                                Tipo: ${resource.resourceType} | 
+                                Tipo: ${resource.resourceType} |
                                 Versão: ${
                                   resource.semanticVersion || resource.version
                                 } |
@@ -135,17 +147,3 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
-
-// Decode base64 sample on load
-window.onload = function () {
-  // Automatically decode the sample data you provided
-  const sampleContentMetadata =
-    "LS0gbGlzdGluZyBwcm9wZXJ0aWVzIC0tCkhhc2hWZXJzaW9uPTIuMC4wCkVuY29kaW5nVmVyc2lvbj0xLjAuMApPcmdhbml6YXRpb249VEVTVApFbnZpcm9ubWVudD1pdC1kYi1kZXNpZ24uanZzNmd3ZGxtazhneWpydwpSZWxhdGlvbkNsYXNzVmVyc2lvbj0xLjAuMApSZXNvdXJjZUNsYXNzVmVyc2lvbj0xLjIuMApFeHBvcnRNb2RlbFZlcnNpb249MS4wLjAK";
-
-  processFile("contentmetadata.md", sampleContentMetadata);
-
-  const sampleResources =
-    "eyJyZXNvdXJjZXMiOlt7InZlcnNpb24iOjgsInJldmlzaW9uIjowLCJtYXN0ZXJJZCI6IjY0YjhhZTkwZmRmODRlZGRhMTZkMDlhNzlhMTcyZDdiOjdkOTkzMWViZDQyNjQ0NmQ4MTkyOGQ5M2I1Y2JlYzhiOjgiLCJ2ZXJzaW9uQ29tbWVudCI6InJlbW92ZWQgOiIsImdsb2JhbE1vZGlmaWVkRGF0ZSI6NzExMzYzMTgwMjY5NjU3LCJpc1ZhbGlkSGFzaCI6MCwiaWQiOiI3ZDk5MzFlYmQ0MjY0NDZkODE5MjhkOTNiNWNiZWM4YiIsIm5hbWUiOiJHRU4gU2NyaXB0cy56aXAiLCJjcmVhdGVkQnkiOiJsZWFuZHJvLmNoZXJ1YmluaUBjYXN0Z3JvdXBwYXJ0bmVyLmNvbS5iciIsImNyZWF0ZWRBdCI6MTc0ODAyNTE2MzEzNiwidW5pcXVlSWQiOiJHRU5fU2NyaXB0cyIsIm1vZGlmaWVkQnkiOiJsZWFuZHJvLmNoZXJ1YmluaUBjYXN0Z3JvdXBwYXJ0bmVyLmNvbS5iciIsIm1vZGlmaWVkQXQiOjE3NTI4Njg0OTk1NTEsImFkZGl0aW9uYWxBdHRyaWJ1dGVzIjp7IkRlc2NyaXB0aW9uIjp7ImlzRXh0ZW5kZWRMYXJnZUF0dHJpYnV0ZSI6dHJ1ZSwiYXR0cmlidXRlVmFsdWVzIjpbIiJdfSwiT3JpZ2luQnVuZGxlU3ltYm9saWNOYW1lIjp7ImlzRXh0ZW5kZWRMYXJnZUF0dHJpYnV0ZSI6ZmFsc2UsImF0dHJpYnV0ZVZhbHVlcyI6WyJHRU5fU2NyaXB0cyJdfSwiQnVuZGxlVmVyc2lvbiI6eyJpc0V4dGVuZGVkTGFyZ2VBdHRyaWJ1dGUiOmZhbHNlLCJhdHRyaWJ1dGVWYWx1ZXMiOlsiMS4wLjciXX0sIkJ1bmRsZVN5bWJvbGljTmFtZSI6eyJpc0V4dGVuZGVkTGFyZ2VBdHRyaWJ1dGUiOmZhbHNlLCJhdHRyaWJ1dGVWYWx1ZXMiOlsiR0VOX1NjcmlwdHMiXX0sIlNBUC1SdW50aW1lUHJvZmlsZSI6eyJpc0V4dGVuZGVkTGFyZ2VBdHRyaWJ1dGUiOmZhbHNlLCJhdHRyaWJ1dGVWYWx1ZXMiOlsiaWZsbWFwIl19LCJPcmlnaW5CdW5kbGVOYW1lIjp7ImlzRXh0ZW5kZWRMYXJnZUF0dHJpYnV0ZSI6ZmFsc2UsImF0dHJpYnV0ZVZhbHVlcyI6WyJHRU4gU2NyaXB0cyJdfX0sInJlc291cmNlVHlwZSI6IlNjcmlwdENvbGxlY3Rpb24iLCJjb250ZW50VHlwZSI6ImFwcGxpY2F0aW9uL29jdGV0LXN0cmVhbSIsImRpc3BsYXlOYW1lIjoiR0VOIFNjcmlwdHMiLCJzZW1hbnRpY1ZlcnNpb24iOiIxLjAuNyIsInByaXZpbGVnZVN0YXRlIjoiRURJVF9BTExPV0VEIiwiaXNSZXN0cmljdGVkIjpmYWxzZSwiaXNHcm91cERlZmF1bHQiOmZhbHNlLCJyZXNvdXJjZVJlZmVyZW5jZXMiOltdfSx7InZlcnNpb24iOjEsInJldmlzaW9uIjowLCJtYXN0ZXJJZCI6IjY0YjhhZTkwZmRmODRlZGRhMTZkMDlhNzlhMTcyZDdiOmU1ZGNhOGQ3NTFlNzRlOGQ5Zjg2N2MzOWYxMDBkYjZiOjEiLCJnbG9iYWxNb2RpZmllZERhdGUiOjcxMjI1NzQwNzU5OTIyMiwiaXNWYWxpZEhhc2giOjAsImlkIjoiZTVkY2E4ZDc1MWU3NGU4ZDlmODY3YzM5ZjEwMGRiNmIiLCJuYW1lIjoiLkdFTkdsb2JhbEdlbmVyYWxQYWNrYWdlIiwiY3JlYXRlZEJ5IjoibGVhbmRyby5jaGVydWJpbmlAY2FzdGdyb3VwcGFydG5lci5jb20uYnIiLCJjcmVhdGVkQXQiOjE3NDgwMjUxMzYzODUsInVuaXF1ZUlkIjoiLkdFTkdsb2JhbEdlbmVyYWxQYWNrYWdlIiwibW9kaWZpZWRCeSI6ImxlYW5kcm8uY2hlcnViaW5pQGNhc3Rncm91cHBhcnRuZXIuY29tLmJyIiwibW9kaWZpZWRBdCI6MTc0ODAyNTEzNjM4OCwiYWRkaXRpb25hbEF0dHJpYnV0ZXMiOnsiRGVzY3JpcHRpb24iOnsiaXNFeHRlbmRlZExhcmdlQXR0cmlidXRlIjpmYWxzZSwiYXR0cmlidXRlVmFsdWVzIjpbIiJdfSwic2hvcnRUZXh0Ijp7ImlzRXh0ZW5kZWRMYXJnZUF0dHJpYnV0ZSI6ZmFsc2UsImF0dHJpYnV0ZVZhbHVlcyI6WyJQYWNvdGUgcGFyYSBhZGnDp8OjbyBkZSBhcnRlZmF0b3MgdXRpbGl6YWRvcyBlbSBtw7psdGlwbHVzIHBhY290ZXMiXX0sIlByb2R1Y3QiOnsiaXNFeHRlbmRlZExhcmdlQXR0cmlidXRlIjpmYWxzZSwiYXR0cmlidXRlVmFsdWVzIjpbIiJdfSwiY2F0ZWdvcnkiOnsiaXNFeHRlbmRlZExhcmdlQXR0cmlidXRlIjpmYWxzZSwiYXR0cmlidXRlVmFsdWVzIjpbIkludGVncmF0aW9uIl19LCJTdXBwb3J0ZWRQbGF0Zm9ybSI6eyJpc0V4dGVuZGVkTGFyZ2VBdHRyaWJ1dGUiOmZhbHNlLCJhdHRyaWJ1dGVWYWx1ZXMiOlsiU0FQIEhBTkEgQ2xvdWQgSW50ZWdyYXRpb24iXX19LCJhdXhpbGFyeVByb3BlcnRpZXMiOnt9LCJyZXNvdXJjZVR5cGUiOiJDb250ZW50UGFja2FnZSIsImRpc3BsYXlOYW1lIjoiLkdFTiBHbG9iYWwgR2VuZXJhbCBQYWNrYWdlIiwic2VtYW50aWNWZXJzaW9uIjoiMS4wLjAiLCJwcml2aWxlZ2VTdGF0ZSI6IkVESVRfQUxMT1dFRCIsImlzUmVzdHJpY3RlZCI6ZmFsc2UsImlzR3JvdXBEZWZhdWx0IjpmYWxzZSwicmVzb3VyY2VSZWZlcmVuY2VzIjpbXX1dLCJyZWxhdGlvbnMiOlt7InNvdXJjZUlkIjoiZTVkY2E4ZDc1MWU3NGU4ZDlmODY3YzM5ZjEwMGRiNmIiLCJ0YXJnZXRJZCI6IjdkOTkzMWViZDQyNjQ0NmQ4MTkyOGQ5M2I1Y2JlYzhiIiwicmVsYXRpb25UeXBlIjoiQUdHUkVHQVRJT04iLCJSZWxhdGlvbk5hbWUiOiJEZWZhdWx0In1dfQ==";
-
-  processFile("resources.cnt", sampleResources);
-};
