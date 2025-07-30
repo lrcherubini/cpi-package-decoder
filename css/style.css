@@ -65,6 +65,22 @@ input[type="file"] {
   box-shadow: 0 5px 15px rgba(0, 102, 204, 0.3);
 }
 
+.download-btn {
+  background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.download-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+
 .results {
   margin-top: 20px;
 }
