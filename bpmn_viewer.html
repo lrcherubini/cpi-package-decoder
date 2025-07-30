@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BPMN Viewer</title>
+<link rel="stylesheet" href="https://unpkg.com/bpmn-js@10.1.0/dist/assets/bpmn-js.css">
+<style>
+  html, body { height: 100%; margin: 0; }
+  #canvas { width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<div id="canvas"></div>
+<script src="https://unpkg.com/bpmn-js@10.1.0/dist/bpmn-viewer.development.js"></script>
+<script>
+(function(){
+  const params = new URLSearchParams(window.location.search);
+  const data = params.get('data');
+  if (!data) {
+    document.body.innerHTML = '<p>No BPMN data provided.</p>';
+    return;
+  }
+  const xml = atob(data);
+  const viewer = new BpmnJS({ container: '#canvas' });
+  viewer.importXML(xml).then(function(){
+    viewer.get('canvas').zoom('fit-viewport');
+  }).catch(function(err){
+    document.body.innerHTML = '<pre>Erro ao carregar diagrama: ' + err + '</pre>';
+  });
+})();
+</script>
+</body>
+</html>

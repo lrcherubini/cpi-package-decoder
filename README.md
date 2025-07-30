@@ -12,6 +12,7 @@ O SAP CPI Package Decoder é uma aplicação web client-side que permite aos des
 - **Visualização de metadados**: Exibe informações detalhadas do pacote (`contentmetadata.md`)
 - **Exploração de recursos**: Lista e permite visualizar todos os recursos do pacote (`resources.cnt`)
 - **Visualização de scripts**: Suporte para ScriptCollections e scripts individuais (Groovy, JavaScript, etc.)
+- **Visualização de BPMN**: Botão para exibir arquivos `.iflw` como diagramas BPMN
 - **Interface intuitiva**: Drag & drop ou seleção de arquivos
 - **Processamento local**: Toda a decodificação acontece no navegador (sem upload para servidores)
 

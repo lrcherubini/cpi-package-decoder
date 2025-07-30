@@ -8,6 +8,7 @@ const languageSelect = document.getElementById("languageSelect");
 const fileSelect = document.getElementById("fileSelect");
 const formatBtn = document.getElementById("formatBtn");
 const copyBtn = document.getElementById("copyBtn");
+const bpmnBtn = document.getElementById("bpmnBtn");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 
@@ -17,6 +18,7 @@ let monacoEditor = null;
 let isFullscreen = false;
 let currentFiles = {};
 let originalZipName = "";
+let currentFileName = "";
 
 function getFileContent(fileName) {
   if (fileContents[fileName]) {
@@ -113,6 +115,19 @@ copyBtn.addEventListener("click", () => {
         }, 2000);
       });
   }
+});
+
+// Visualizar BPMN
+bpmnBtn.addEventListener("click", () => {
+  if (!monacoEditor) return;
+  const ext = currentFileName.split('.').pop().toLowerCase();
+  if (ext !== 'iflw' && ext !== 'bpmn' && ext !== 'xml') {
+    alert('Arquivo atual não é um IFLW/BPMN.');
+    return;
+  }
+  const xml = monacoEditor.getValue();
+  const encoded = btoa(unescape(encodeURIComponent(xml)));
+  window.open(`bpmn_viewer.html?data=${encoded}`, '_blank');
 });
 
 // Format/Pretty Print button
@@ -384,6 +399,12 @@ function setEditorContent(content, fileName) {
   languageSelect.value = language;
   monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
   monacoEditor.setValue(content);
+  currentFileName = fileName;
+  if (fileName.toLowerCase().endsWith('.iflw') || fileName.toLowerCase().endsWith('.bpmn')) {
+    bpmnBtn.style.display = 'inline-block';
+  } else {
+    bpmnBtn.style.display = 'none';
+  }
 }
 
 /**
@@ -397,6 +418,7 @@ function closeEditorModal() {
   fileSelect.style.display = "none";
   fileSelect.innerHTML = "";
   currentFiles = {};
+  bpmnBtn.style.display = "none";
 
   if (isFullscreen) {
     exitFullscreen();
