@@ -398,7 +398,7 @@ function formatPackageInfo(data) {
     html += "<h5>📋 Recursos encontrados:</h5>";
     html += '<ul class="script-list">';
     data.resources.forEach((resource) => {
-      const urlDataAttr = resource.url ? ` data-resource-url="${resource.url}"` : '';
+      const urlDataAttr = resource.additionalAttributes.url ? ` data-resource-url="${resource.additionalAttributes.url.attributeValues}"` : '';
       html += `
               <li class="script-item" data-resource-id="${resource.id}" data-resource-type="${resource.resourceType}"${urlDataAttr}>
                   <div class="script-name">${resource.displayName || resource.name}</div>
