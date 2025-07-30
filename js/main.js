@@ -11,6 +11,7 @@ const copyBtn = document.getElementById("copyBtn");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
 
 let fileContents = {}; // Armazena o conteúdo dos arquivos do ZIP principal
+let resourcesCntDecoded = '';
 let monacoEditor = null;
 let isFullscreen = false;
 let currentFiles = {};
@@ -129,7 +130,7 @@ results.addEventListener("click", function (e) {
       return;
     }
 
-    openResourceInMonaco(resourceId, resourceName);
+    openResourceInMonaco(resourceId, resourceName, resourceType);
   }
 });
 
@@ -139,6 +140,7 @@ results.addEventListener("click", function (e) {
 function handleZipFile(file) {
   results.innerHTML = "";
   fileContents = {};
+  resourcesCntDecoded = '';
   const zip = new JSZip();
   zip.loadAsync(file).then((zip) => {
     const promises = [];
@@ -168,13 +170,25 @@ function handleZipFile(file) {
 /**
  * Abre o conteúdo de um recurso no Monaco Editor
  */
-function openResourceInMonaco(resourceId, resourceName) {
-  const contentFileName = resourceId + "_content";
-  const content = fileContents[contentFileName];
+function openResourceInMonaco(resourceId, resourceName, resourceType) {
+  let content;
+  let fileName = resourceName;
 
-  if (!content) {
-    alert('Nenhum conteúdo associado a este recurso.');
-    return;
+  if (resourceType && resourceType.toUpperCase() === 'CONTENTPACKAGE') {
+    if (!resourcesCntDecoded) {
+      alert('resources.cnt não encontrado ou não processado.');
+      return;
+    }
+    content = resourcesCntDecoded;
+    fileName = 'resources.cnt.json';
+  } else {
+    const contentFileName = resourceId + "_content";
+    content = fileContents[contentFileName];
+
+    if (!content) {
+      alert('Nenhum conteúdo associado a este recurso.');
+      return;
+    }
   }
 
   modalTitle.textContent = `📄 ${resourceName}`;
@@ -185,10 +199,10 @@ function openResourceInMonaco(resourceId, resourceName) {
   // Initialize Monaco Editor if not already done
   if (!monacoEditor) {
     require(['vs/editor/editor.main'], function () {
-      initializeMonacoEditor(content, resourceName);
+      initializeMonacoEditor(content, fileName);
     });
   } else {
-    loadContentIntoMonaco(content, resourceName);
+    loadContentIntoMonaco(content, fileName);
   }
 }
 
@@ -280,6 +294,14 @@ function detectLanguage(fileName) {
     'js': 'javascript',
     'javascript': 'javascript',
     'xml': 'xml',
+    'iflw': 'xml',
+    'xsl': 'xml',
+    'xsd': 'xml',
+    'edmx': 'xml',
+    'xslt': 'xml',
+    'mmap': 'xml',
+    'propdef': 'xml',
+    'project': 'xml',
     'json': 'json',
     'java': 'java',
     'py': 'python',
@@ -385,6 +407,7 @@ function processFile(fileName, content) {
             title = "📦 Recursos do Pacote (resources.cnt)";
             const decoded = atob(content.trim());
             const jsonData = JSON.parse(decoded);
+            resourcesCntDecoded = JSON.stringify(jsonData, null, 2);
             processedContent = `<div class="json-viewer">${formatPackageInfo(jsonData)}</div>`;
         }
 
