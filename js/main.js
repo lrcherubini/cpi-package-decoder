@@ -17,6 +17,14 @@ let monacoEditor = null;
 let isFullscreen = false;
 let currentFiles = {};
 
+function getFileContent(fileName) {
+  if (fileContents[fileName]) {
+    return fileContents[fileName];
+  }
+  const foundKey = Object.keys(fileContents).find(key => key === fileName || key.endsWith('/' + fileName));
+  return foundKey ? fileContents[foundKey] : null;
+}
+
 // Initialize Monaco Editor
 require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
 
@@ -160,11 +168,13 @@ function handleZipFile(file) {
 
     // Após carregar todos os arquivos, processa os principais
     Promise.all(promises).then(() => {
-      if (fileContents["resources.cnt"]) {
-        processFile("resources.cnt", fileContents["resources.cnt"]);
+      const resourcesCnt = getFileContent('resources.cnt');
+      if (resourcesCnt) {
+        processFile('resources.cnt', resourcesCnt);
       }
-      if (fileContents["contentmetadata.md"]) {
-        processFile("contentmetadata.md", fileContents["contentmetadata.md"]);
+      const contentMetadata = getFileContent('contentmetadata.md');
+      if (contentMetadata) {
+        processFile('contentmetadata.md', contentMetadata);
       }
       downloadBtn.parentElement.style.display = 'block';
     });
@@ -187,7 +197,7 @@ function openResourceInMonaco(resourceId, resourceName, resourceType) {
     fileName = 'resources.cnt.json';
   } else {
     const contentFileName = resourceId + "_content";
-    content = fileContents[contentFileName];
+    content = getFileContent(contentFileName);
 
     if (!content) {
       alert('Nenhum conteúdo associado a este recurso.');
@@ -476,7 +486,7 @@ function downloadResources() {
     packageInfo.resources.forEach(resource => {
       const id = resource.id;
       const name = (resource.displayName || resource.name || id).replace(/\s+/g, '_');
-      const content = fileContents[id + '_content'];
+      const content = getFileContent(id + '_content');
       if (!content) return;
 
       const inner = new JSZip();
@@ -499,6 +509,14 @@ function downloadResources() {
   }
 
   Promise.all(tasks).then(() => {
+    Object.keys(fileContents).forEach(key => {
+      if (key.endsWith('_content') || key.endsWith('resources.cnt') || key.endsWith('contentmetadata.md')) return;
+      if (!packageInfo.resources || !packageInfo.resources.some(r => key.endsWith(r.id + '_content'))) {
+        const data = fileContents[key];
+        outZip.file(key, data);
+      }
+    });
+
     outZip.generateAsync({ type: 'blob' }).then(blob => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
