@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Depurar no Navegador",
+      "type": "chrome", // Ou "msedge" para o Microsoft Edge
+      "request": "launch",
+      // Ao especificar o 'file', o VS Code inicia um servidor de depuração automaticamente
+      "file": "${workspaceFolder}/index.html",
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
+}

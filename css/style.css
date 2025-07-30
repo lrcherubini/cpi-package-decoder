@@ -1,0 +1,152 @@
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+  color: white;
+  padding: 30px;
+  text-align: center;
+}
+
+.content {
+  padding: 30px;
+}
+
+.upload-area {
+  border: 3px dashed #ddd;
+  border-radius: 10px;
+  padding: 40px;
+  text-align: center;
+  margin-bottom: 30px;
+  transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+  border-color: #0066cc;
+  background-color: #f8f9ff;
+}
+
+.upload-area.dragover {
+  border-color: #0066cc;
+  background-color: #e6f2ff;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+.upload-btn {
+  background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.upload-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 102, 204, 0.3);
+}
+
+.results {
+  margin-top: 20px;
+}
+
+.result-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 15px 0;
+  border-left: 4px solid #0066cc;
+}
+
+.result-title {
+  font-weight: bold;
+  color: #0066cc;
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+.code-block {
+  background: #2d3748;
+  color: #e2e8f0;
+  padding: 15px;
+  border-radius: 8px;
+  font-family: "Courier New", monospace;
+  white-space: pre-wrap;
+  max-height: 400px;
+  overflow-y: auto;
+  font-size: 14px;
+}
+
+.json-viewer {
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 15px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.error {
+  color: #e53e3e;
+}
+
+.success {
+  color: #38a169;
+}
+
+.info-box {
+  background: #bee3f8;
+  border: 1px solid #90cdf4;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 15px 0;
+}
+
+.script-list {
+  list-style: none;
+  padding: 0;
+}
+
+.script-item {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 10px 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.script-item:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.script-name {
+  font-weight: bold;
+  color: #2d3748;
+}
+
+.script-type {
+  color: #718096;
+  font-size: 14px;
+}
