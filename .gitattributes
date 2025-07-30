@@ -1,2 +1,12 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Treat certain file extensions as XML for syntax highlighting
+*.iflw   linguist-language=XML
+*.xsl    linguist-language=XML
+*.xsd    linguist-language=XML
+*.edmx   linguist-language=XML
+*.xslt   linguist-language=XML
+*.mmap   linguist-language=XML
+*.propdef linguist-language=XML
+*.project linguist-language=XML
