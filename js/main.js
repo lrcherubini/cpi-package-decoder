@@ -350,7 +350,7 @@ function loadContentIntoMonaco(content, resourceName) {
  * Detecta a linguagem baseada no nome do arquivo
  */
 function detectLanguage(fileName) {
-  const ext = fileName.toLowerCase().split(".").pop();
+  const ext = fileName.split(".").pop().toLowerCase().trim();
   const languageMap = {
     groovy: "groovy",
     gsh: "groovy",
