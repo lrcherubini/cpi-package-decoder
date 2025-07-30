@@ -5,12 +5,15 @@ const modal = document.getElementById("editorModal");
 const modalTitle = document.getElementById("modalTitle");
 const closeModal = document.getElementById("closeModal");
 const languageSelect = document.getElementById("languageSelect");
+const fileSelect = document.getElementById("fileSelect");
+const formatBtn = document.getElementById("formatBtn");
 const copyBtn = document.getElementById("copyBtn");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
 
 let fileContents = {}; // Armazena o conteúdo dos arquivos do ZIP principal
 let monacoEditor = null;
 let isFullscreen = false;
+let currentFiles = {};
 
 // Initialize Monaco Editor
 require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
@@ -60,6 +63,13 @@ languageSelect.addEventListener("change", (e) => {
   }
 });
 
+fileSelect.addEventListener("change", (e) => {
+  const fileName = e.target.value;
+  if (currentFiles[fileName]) {
+    setEditorContent(currentFiles[fileName], fileName);
+  }
+});
+
 // Copy button
 copyBtn.addEventListener("click", () => {
   if (monacoEditor) {
@@ -85,6 +95,16 @@ copyBtn.addEventListener("click", () => {
   }
 });
 
+// Format/Pretty Print button
+formatBtn.addEventListener("click", () => {
+  if (monacoEditor) {
+    const action = monacoEditor.getAction('editor.action.formatDocument');
+    if (action) {
+      action.run();
+    }
+  }
+});
+
 // Fullscreen button
 fullscreenBtn.addEventListener("click", toggleFullscreen);
 
@@ -101,6 +121,14 @@ results.addEventListener("click", function (e) {
   if (scriptItem && scriptItem.dataset.resourceId) {
     const resourceId = scriptItem.dataset.resourceId;
     const resourceName = scriptItem.querySelector('.script-name').textContent;
+    const resourceType = scriptItem.dataset.resourceType;
+    const resourceUrl = scriptItem.dataset.resourceUrl;
+
+    if (resourceType && resourceType.toUpperCase() === 'URL' && resourceUrl) {
+      window.open(resourceUrl, '_blank');
+      return;
+    }
+
     openResourceInMonaco(resourceId, resourceName);
   }
 });
@@ -189,12 +217,15 @@ function initializeMonacoEditor(content, resourceName) {
  * Carrega o conteúdo no Monaco Editor
  */
 function loadContentIntoMonaco(content, resourceName) {
+  currentFiles = {};
+  fileSelect.style.display = 'none';
+  fileSelect.innerHTML = '';
+
   const zip = new JSZip();
-  
+
   // Tenta carregar o conteúdo como um ZIP
   zip.loadAsync(content)
     .then(innerZip => {
-      // Se for um ZIP (como ScriptCollection), mostra lista de arquivos
       const files = [];
       innerZip.forEach((relativePath, zipEntry) => {
         if (!zipEntry.dir) {
@@ -203,28 +234,27 @@ function loadContentIntoMonaco(content, resourceName) {
       });
 
       if (files.length === 1) {
-        // Se há apenas um arquivo, mostra diretamente
         return innerZip.file(files[0]).async("string").then(scriptContent => {
-          const language = detectLanguage(files[0]);
-          languageSelect.value = language;
-          monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
-          monacoEditor.setValue(scriptContent);
+          setEditorContent(scriptContent, files[0]);
         });
       } else if (files.length > 1) {
-        // Se há múltiplos arquivos, cria um índice
-        let indexContent = `// ScriptCollection: ${resourceName}\n// Arquivos encontrados:\n\n`;
-        const filePromises = files.map(fileName => {
+        const promises = files.map(fileName => {
           return innerZip.file(fileName).async("string").then(scriptContent => {
-            return `//==========================================\n// Arquivo: ${fileName}\n//==========================================\n\n${scriptContent}\n\n`;
+            currentFiles[fileName] = scriptContent;
           });
         });
-        
-        return Promise.all(filePromises).then(fileContents => {
-          const combinedContent = indexContent + fileContents.join('');
-          const language = detectLanguage(files[0]);
-          languageSelect.value = language;
-          monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
-          monacoEditor.setValue(combinedContent);
+
+        return Promise.all(promises).then(() => {
+          fileSelect.innerHTML = '';
+          files.forEach(fn => {
+            const opt = document.createElement('option');
+            opt.value = fn;
+            opt.textContent = fn;
+            fileSelect.appendChild(opt);
+          });
+          fileSelect.style.display = 'inline-block';
+          fileSelect.value = files[0];
+          setEditorContent(currentFiles[files[0]], files[0]);
         });
       }
     })
@@ -233,10 +263,7 @@ function loadContentIntoMonaco(content, resourceName) {
       const reader = new FileReader();
       reader.onload = function(e) {
         const textContent = e.target.result;
-        const language = detectLanguage(resourceName);
-        languageSelect.value = language;
-        monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
-        monacoEditor.setValue(textContent);
+        setEditorContent(textContent, resourceName);
       };
       reader.readAsText(new Blob([content]));
     });
@@ -265,6 +292,13 @@ function detectLanguage(fileName) {
   return languageMap[ext] || 'plaintext';
 }
 
+function setEditorContent(content, fileName) {
+  const language = detectLanguage(fileName);
+  languageSelect.value = language;
+  monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
+  monacoEditor.setValue(content);
+}
+
 /**
  * Fecha o modal do editor
  */
@@ -272,7 +306,11 @@ function closeEditorModal() {
   modal.style.display = "none";
   modal.classList.remove("show");
   modal.querySelector('.modal-content').classList.remove("show");
-  
+
+  fileSelect.style.display = 'none';
+  fileSelect.innerHTML = '';
+  currentFiles = {};
+
   if (isFullscreen) {
     exitFullscreen();
   }
@@ -371,8 +409,9 @@ function formatPackageInfo(data) {
     html += "<h5>📋 Recursos encontrados:</h5>";
     html += '<ul class="script-list">';
     data.resources.forEach((resource) => {
+      const urlDataAttr = resource.url ? ` data-resource-url="${resource.url}"` : '';
       html += `
-              <li class="script-item" data-resource-id="${resource.id}">
+              <li class="script-item" data-resource-id="${resource.id}" data-resource-type="${resource.resourceType}"${urlDataAttr}>
                   <div class="script-name">${resource.displayName || resource.name}</div>
                   <div class="script-type">
                       Tipo: ${resource.resourceType} |
@@ -382,7 +421,7 @@ function formatPackageInfo(data) {
               </li>`;
     });
     html += "</ul>";
-    html += '<p style="margin-top: 15px; color: #666; font-style: italic;">💡 Clique em qualquer recurso para visualizar seu conteúdo no editor</p>';
+    html += '<p style="margin-top: 15px; color: #666; font-style: italic;">💡 Clique em qualquer recurso para visualizar seu conteúdo no editor. Recursos do tipo URL serão abertos em nova janela</p>';
   }
   return html;
 }
