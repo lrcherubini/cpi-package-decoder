@@ -6,6 +6,7 @@ const modalTitle = document.getElementById("modalTitle");
 const closeModal = document.getElementById("closeModal");
 const languageSelect = document.getElementById("languageSelect");
 const fileSelect = document.getElementById("fileSelect");
+const formatBtn = document.getElementById("formatBtn");
 const copyBtn = document.getElementById("copyBtn");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
 
@@ -91,6 +92,16 @@ copyBtn.addEventListener("click", () => {
         copyBtn.textContent = "📋";
       }, 2000);
     });
+  }
+});
+
+// Format/Pretty Print button
+formatBtn.addEventListener("click", () => {
+  if (monacoEditor) {
+    const action = monacoEditor.getAction('editor.action.formatDocument');
+    if (action) {
+      action.run();
+    }
   }
 });
 
