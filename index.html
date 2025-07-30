@@ -51,10 +51,41 @@
         </div>
 
         <div id="results" class="results"></div>
+        <div id="downloadSection" class="result-section" style="display: none; text-align: center;">
+          <button id="downloadBtn" class="download-btn">⬇️ Baixar Recursos Decodificados</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for Monaco Editor -->
+    <div id="editorModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modalTitle">Conteúdo do Arquivo</h3>
+          <div class="modal-controls">
+            <select id="languageSelect" class="language-select">
+              <option value="javascript">JavaScript</option>
+              <option value="groovy">Groovy</option>
+              <option value="xml">XML</option>
+              <option value="json">JSON</option>
+              <option value="sql">SQL</option>
+              <option value="java">Java</option>
+              <option value="python">Python</option>
+              <option value="plaintext">Plain Text</option>
+            </select>
+            <select id="fileSelect" class="file-select"></select>
+            <button id="formatBtn" class="control-btn" title="Formatar código">✨</button>
+            <button id="copyBtn" class="control-btn" title="Copiar conteúdo">📋</button>
+            <button id="fullscreenBtn" class="control-btn" title="Tela cheia">⛶</button>
+            <button id="closeModal" class="close-btn">&times;</button>
+          </div>
+        </div>
+        <div id="monacoEditor" class="monaco-container"></div>
       </div>
     </div>
 
     <script src="lib/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>

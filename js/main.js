@@ -1,9 +1,30 @@
 const uploadArea = document.getElementById("uploadArea");
 const fileInput = document.getElementById("fileInput");
 const results = document.getElementById("results");
-let fileContents = {}; // Armazena o conteúdo dos arquivos do ZIP principal
+const modal = document.getElementById("editorModal");
+const modalTitle = document.getElementById("modalTitle");
+const closeModal = document.getElementById("closeModal");
+const languageSelect = document.getElementById("languageSelect");
+const fileSelect = document.getElementById("fileSelect");
+const formatBtn = document.getElementById("formatBtn");
+const copyBtn = document.getElementById("copyBtn");
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+const downloadBtn = document.getElementById("downloadBtn");
 
-// --- Funcionalidades de Drag and Drop e Seleção de Arquivo (sem alterações) ---
+let fileContents = {}; // Armazena o conteúdo dos arquivos do ZIP principal
+let resourcesCntDecoded = '';
+let monacoEditor = null;
+let isFullscreen = false;
+let currentFiles = {};
+
+// Initialize Monaco Editor
+require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+
+require(['vs/editor/editor.main'], function () {
+  console.log('Monaco Editor loaded successfully');
+});
+
+// --- Funcionalidades de Drag and Drop e Seleção de Arquivo ---
 uploadArea.addEventListener("dragover", (e) => {
   e.preventDefault();
   uploadArea.classList.add("dragover");
@@ -27,12 +48,91 @@ fileInput.addEventListener("change", (e) => {
   }
 });
 
+// --- Modal Event Listeners ---
+closeModal.addEventListener("click", closeEditorModal);
+
+// Close modal when clicking outside
+modal.addEventListener("click", (e) => {
+  if (e.target === modal) {
+    closeEditorModal();
+  }
+});
+
+// Language selector change
+languageSelect.addEventListener("change", (e) => {
+  if (monacoEditor) {
+    monaco.editor.setModelLanguage(monacoEditor.getModel(), e.target.value);
+  }
+});
+
+fileSelect.addEventListener("change", (e) => {
+  const fileName = e.target.value;
+  if (currentFiles[fileName]) {
+    setEditorContent(currentFiles[fileName], fileName);
+  }
+});
+
+// Copy button
+copyBtn.addEventListener("click", () => {
+  if (monacoEditor) {
+    const content = monacoEditor.getValue();
+    navigator.clipboard.writeText(content).then(() => {
+      copyBtn.textContent = "✅";
+      setTimeout(() => {
+        copyBtn.textContent = "📋";
+      }, 2000);
+    }).catch(() => {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = content;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      copyBtn.textContent = "✅";
+      setTimeout(() => {
+        copyBtn.textContent = "📋";
+      }, 2000);
+    });
+  }
+});
+
+// Format/Pretty Print button
+formatBtn.addEventListener("click", () => {
+  if (monacoEditor) {
+    const action = monacoEditor.getAction('editor.action.formatDocument');
+    if (action) {
+      action.run();
+    }
+  }
+});
+
+// Fullscreen button
+fullscreenBtn.addEventListener("click", toggleFullscreen);
+downloadBtn.addEventListener("click", downloadResources);
+
+// ESC key to close modal
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && modal.style.display === "block") {
+    closeEditorModal();
+  }
+});
+
 // --- Listener de Eventos Generalizado ---
 results.addEventListener("click", function (e) {
   const scriptItem = e.target.closest(".script-item");
   if (scriptItem && scriptItem.dataset.resourceId) {
     const resourceId = scriptItem.dataset.resourceId;
-    toggleResourceContent(resourceId, scriptItem); // Chama uma função genérica
+    const resourceName = scriptItem.querySelector('.script-name').textContent;
+    const resourceType = scriptItem.dataset.resourceType;
+    const resourceUrl = scriptItem.dataset.resourceUrl;
+
+    if (resourceType && resourceType.toUpperCase() === 'URL' && resourceUrl) {
+      window.open(resourceUrl, '_blank');
+      return;
+    }
+
+    openResourceInMonaco(resourceId, resourceName, resourceType);
   }
 });
 
@@ -42,6 +142,8 @@ results.addEventListener("click", function (e) {
 function handleZipFile(file) {
   results.innerHTML = "";
   fileContents = {};
+  resourcesCntDecoded = '';
+  downloadBtn.parentElement.style.display = 'none';
   const zip = new JSZip();
   zip.loadAsync(file).then((zip) => {
     const promises = [];
@@ -64,80 +166,231 @@ function handleZipFile(file) {
       if (fileContents["contentmetadata.md"]) {
         processFile("contentmetadata.md", fileContents["contentmetadata.md"]);
       }
+      downloadBtn.parentElement.style.display = 'block';
     });
   });
 }
 
 /**
- * Controla a exibição (mostrar/ocultar) do conteúdo de um recurso.
+ * Abre o conteúdo de um recurso no Monaco Editor
  */
-function toggleResourceContent(resourceId, scriptItemElement) {
-  const contentArea = scriptItemElement.querySelector(".script-content-area");
-  const isVisible = contentArea.style.display === "block";
+function openResourceInMonaco(resourceId, resourceName, resourceType) {
+  let content;
+  let fileName = resourceName;
 
-  // Se estiver visível, oculta e para a execução
-  if (isVisible) {
-    contentArea.style.display = "none";
-    return;
+  if (resourceType && resourceType.toUpperCase() === 'CONTENTPACKAGE') {
+    if (!resourcesCntDecoded) {
+      alert('resources.cnt não encontrado ou não processado.');
+      return;
+    }
+    content = resourcesCntDecoded;
+    fileName = 'resources.cnt.json';
+  } else {
+    const contentFileName = resourceId + "_content";
+    content = fileContents[contentFileName];
+
+    if (!content) {
+      alert('Nenhum conteúdo associado a este recurso.');
+      return;
+    }
   }
 
-  // Se o conteúdo já foi carregado antes, apenas o exibe
-  if (contentArea.innerHTML.trim() !== "") {
-    contentArea.style.display = "block";
-    return;
-  }
+  modalTitle.textContent = `📄 ${resourceName}`;
+  modal.style.display = "block";
+  modal.classList.add("show");
+  modal.querySelector('.modal-content').classList.add("show");
 
-  // Se não, carrega e exibe o conteúdo
-  displayResourceContent(resourceId, contentArea);
+  // Initialize Monaco Editor if not already done
+  if (!monacoEditor) {
+    require(['vs/editor/editor.main'], function () {
+      initializeMonacoEditor(content, fileName);
+    });
+  } else {
+    loadContentIntoMonaco(content, fileName);
+  }
 }
 
 /**
- * Exibe o conteúdo de um recurso, tentando descompactá-lo ou mostrá-lo como texto.
+ * Inicializa o Monaco Editor
  */
-function displayResourceContent(resourceId, contentArea) {
-  const contentFileName = resourceId + "_content";
-  const content = fileContents[contentFileName];
+function initializeMonacoEditor(content, resourceName) {
+  monacoEditor = monaco.editor.create(document.getElementById('monacoEditor'), {
+    value: '',
+    language: 'javascript',
+    theme: 'vs-dark',
+    automaticLayout: true,
+    readOnly: true,
+    minimap: { enabled: true },
+    scrollBeyondLastLine: false,
+    fontSize: 14,
+    lineNumbers: 'on',
+    renderWhitespace: 'selection',
+    wordWrap: 'on'
+  });
 
-  if (!content) {
-    contentArea.innerHTML =
-      '<div class="error">Nenhum conteúdo associado a este recurso.</div>';
-    contentArea.style.display = "block";
-    return;
-  }
+  loadContentIntoMonaco(content, resourceName);
+}
+
+/**
+ * Carrega o conteúdo no Monaco Editor
+ */
+function loadContentIntoMonaco(content, resourceName) {
+  currentFiles = {};
+  fileSelect.style.display = 'none';
+  fileSelect.innerHTML = '';
 
   const zip = new JSZip();
+
   // Tenta carregar o conteúdo como um ZIP
   zip.loadAsync(content)
     .then(innerZip => {
-      // Se for um ZIP (como ScriptCollection), extrai os arquivos
-      const scriptPromises = [];
+      const files = [];
       innerZip.forEach((relativePath, zipEntry) => {
         if (!zipEntry.dir) {
-          const scriptPromise = zipEntry.async("string").then(scriptContent =>
-            `<div class="result-section">
-                <div class="result-title">📄 ${zipEntry.name}</div>
-                <div class="code-block">${escapeHtml(scriptContent)}</div>
-             </div>`
-          );
-          scriptPromises.push(scriptPromise);
+          files.push(relativePath);
         }
       });
-      return Promise.all(scriptPromises);
-    })
-    .then(scriptsHtml => {
-      contentArea.innerHTML = '<div class="inner-scripts">' + scriptsHtml.join("") + '</div>';
-      contentArea.style.display = "block";
+
+      if (files.length === 1) {
+        return innerZip.file(files[0]).async("string").then(scriptContent => {
+          setEditorContent(scriptContent, files[0]);
+        });
+      } else if (files.length > 1) {
+        const promises = files.map(fileName => {
+          return innerZip.file(fileName).async("string").then(scriptContent => {
+            currentFiles[fileName] = scriptContent;
+          });
+        });
+
+        return Promise.all(promises).then(() => {
+          fileSelect.innerHTML = '';
+          files.forEach(fn => {
+            const opt = document.createElement('option');
+            opt.value = fn;
+            opt.textContent = fn;
+            fileSelect.appendChild(opt);
+          });
+          fileSelect.style.display = 'inline-block';
+          fileSelect.value = files[0];
+          setEditorContent(currentFiles[files[0]], files[0]);
+        });
+      }
     })
     .catch(() => {
-      // Se não for um ZIP, trata como texto simples (ex: script Groovy, XML)
+      // Se não for um ZIP, trata como texto simples
       const reader = new FileReader();
       reader.onload = function(e) {
-          contentArea.innerHTML = `<div class="code-block">${escapeHtml(e.target.result)}</div>`;
-          contentArea.style.display = "block";
+        const textContent = e.target.result;
+        setEditorContent(textContent, resourceName);
       };
-      // Usa um Blob para ler o ArrayBuffer como texto
       reader.readAsText(new Blob([content]));
     });
+}
+
+/**
+ * Detecta a linguagem baseada no nome do arquivo
+ */
+function detectLanguage(fileName) {
+  const ext = fileName.toLowerCase().split('.').pop();
+  const languageMap = {
+    'groovy': 'groovy',
+    'gsh': 'groovy',
+    'js': 'javascript',
+    'javascript': 'javascript',
+    'xml': 'xml',
+    'iflw': 'xml',
+    'xsl': 'xml',
+    'xsd': 'xml',
+    'edmx': 'xml',
+    'xslt': 'xml',
+    'mmap': 'xml',
+    'propdef': 'xml',
+    'project': 'xml',
+    'json': 'json',
+    'java': 'java',
+    'py': 'python',
+    'sql': 'sql',
+    'properties': 'properties',
+    'yaml': 'yaml',
+    'yml': 'yaml'
+  };
+  
+  return languageMap[ext] || 'plaintext';
+}
+
+function setEditorContent(content, fileName) {
+  const language = detectLanguage(fileName);
+  languageSelect.value = language;
+  monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
+  monacoEditor.setValue(content);
+}
+
+/**
+ * Fecha o modal do editor
+ */
+function closeEditorModal() {
+  modal.style.display = "none";
+  modal.classList.remove("show");
+  modal.querySelector('.modal-content').classList.remove("show");
+
+  fileSelect.style.display = 'none';
+  fileSelect.innerHTML = '';
+  currentFiles = {};
+
+  if (isFullscreen) {
+    exitFullscreen();
+  }
+}
+
+/**
+ * Toggle fullscreen mode
+ */
+function toggleFullscreen() {
+  if (!isFullscreen) {
+    enterFullscreen();
+  } else {
+    exitFullscreen();
+  }
+}
+
+function enterFullscreen() {
+  const modalContent = modal.querySelector('.modal-content');
+  modalContent.style.position = 'fixed';
+  modalContent.style.top = '0';
+  modalContent.style.left = '0';
+  modalContent.style.width = '100vw';
+  modalContent.style.height = '100vh';
+  modalContent.style.margin = '0';
+  modalContent.style.borderRadius = '0';
+  modalContent.style.zIndex = '10001';
+  
+  fullscreenBtn.textContent = '🗗';
+  fullscreenBtn.title = 'Sair da tela cheia';
+  isFullscreen = true;
+  
+  if (monacoEditor) {
+    setTimeout(() => monacoEditor.layout(), 100);
+  }
+}
+
+function exitFullscreen() {
+  const modalContent = modal.querySelector('.modal-content');
+  modalContent.style.position = '';
+  modalContent.style.top = '';
+  modalContent.style.left = '';
+  modalContent.style.width = '95%';
+  modalContent.style.height = '90%';
+  modalContent.style.margin = '2% auto';
+  modalContent.style.borderRadius = '12px';
+  modalContent.style.zIndex = '';
+  
+  fullscreenBtn.textContent = '⛶';
+  fullscreenBtn.title = 'Tela cheia';
+  isFullscreen = false;
+  
+  if (monacoEditor) {
+    setTimeout(() => monacoEditor.layout(), 100);
+  }
 }
 
 /**
@@ -158,6 +411,7 @@ function processFile(fileName, content) {
             title = "📦 Recursos do Pacote (resources.cnt)";
             const decoded = atob(content.trim());
             const jsonData = JSON.parse(decoded);
+            resourcesCntDecoded = JSON.stringify(jsonData, null, 2);
             processedContent = `<div class="json-viewer">${formatPackageInfo(jsonData)}</div>`;
         }
 
@@ -182,18 +436,19 @@ function formatPackageInfo(data) {
     html += "<h5>📋 Recursos encontrados:</h5>";
     html += '<ul class="script-list">';
     data.resources.forEach((resource) => {
+      const urlDataAttr = resource.additionalAttributes.url ? ` data-resource-url="${resource.additionalAttributes.url.attributeValues}"` : '';
       html += `
-              <li class="script-item" data-resource-id="${resource.id}">
+              <li class="script-item" data-resource-id="${resource.id}" data-resource-type="${resource.resourceType}"${urlDataAttr}>
                   <div class="script-name">${resource.displayName || resource.name}</div>
                   <div class="script-type">
                       Tipo: ${resource.resourceType} |
                       Versão: ${resource.semanticVersion || resource.version} |
                       Modificado por: ${resource.modifiedBy}
                   </div>
-                  <div class="script-content-area" style="display: none;"></div>
               </li>`;
     });
     html += "</ul>";
+    html += '<p style="margin-top: 15px; color: #666; font-style: italic;">💡 Clique em qualquer recurso para visualizar seu conteúdo no editor. Recursos do tipo URL serão abertos em nova janela</p>';
   }
   return html;
 }
@@ -205,4 +460,53 @@ function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
+}
+
+function downloadResources() {
+  if (!resourcesCntDecoded) {
+    alert('Nenhum recurso processado para download.');
+    return;
+  }
+
+  const packageInfo = JSON.parse(resourcesCntDecoded);
+  const outZip = new JSZip();
+  const tasks = [];
+
+  if (packageInfo.resources) {
+    packageInfo.resources.forEach(resource => {
+      const id = resource.id;
+      const name = (resource.displayName || resource.name || id).replace(/\s+/g, '_');
+      const content = fileContents[id + '_content'];
+      if (!content) return;
+
+      const inner = new JSZip();
+      const task = inner.loadAsync(content).then(() => {
+        const innerTasks = [];
+        inner.forEach((relPath, entry) => {
+          if (!entry.dir) {
+            innerTasks.push(entry.async('arraybuffer').then(data => {
+              outZip.file(name + '/' + relPath, data);
+            }));
+          }
+        });
+        return Promise.all(innerTasks);
+      }).catch(() => {
+        outZip.file(name, content);
+      });
+
+      tasks.push(task);
+    });
+  }
+
+  Promise.all(tasks).then(() => {
+    outZip.generateAsync({ type: 'blob' }).then(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'decoded_resources.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    });
+  });
 }
