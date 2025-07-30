@@ -205,6 +205,11 @@ results.addEventListener("click", function (e) {
       return;
     }
 
+    if (resourceType && resourceType.toUpperCase() === "FILE") {
+      downloadFileResource(resourceId, resourceName, resourceType);
+      return;
+    }
+
     openResourceInMonaco(resourceId, resourceName, resourceType);
   }
 });
@@ -291,6 +296,29 @@ function openResourceInMonaco(resourceId, resourceName, resourceType) {
   } else {
     loadContentIntoMonaco(content, fileName);
   }
+}
+
+/**
+ * Faz o download direto de um recurso do tipo File
+ */
+function downloadFileResource(resourceId, resourceName) {
+  const contentFileName = resourceId + "_content";
+  const content = getFileContent(contentFileName);
+
+  if (!content) {
+    alert("Nenhum conteúdo associado a este recurso.");
+    return;
+  }
+
+  const sanitized = (resourceName || resourceId).replace(/[\s/\\?%*:|"<>]/g, "_");
+  const blob = new Blob([content]);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = sanitized;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
 }
 
 /**
