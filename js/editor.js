@@ -1,4 +1,5 @@
 // Editor related functions
+let isRenderedView = false;
 function initializeMonacoEditor(content, resourceName) {
   monacoEditor = monaco.editor.create(document.getElementById("monacoEditor"), {
     value: "",
@@ -107,10 +108,14 @@ function setEditorContent(content, fileName) {
   monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
   monacoEditor.setValue(content);
   currentFileName = fileName;
-  if (fileName.toLowerCase().endsWith(".iflw") || fileName.toLowerCase().endsWith(".bpmn")) {
-    bpmnBtn.style.display = "inline-block";
+  isRenderedView = false;
+  document.getElementById("monacoEditor").style.display = "block";
+  renderedView.style.display = "none";
+  const ext = fileName.split(".").pop().toLowerCase();
+  if (["iflw", "project", "mf", "prop", "propdef", "mmap", "json"].includes(ext)) {
+    viewSwitchBtn.style.display = "inline-block";
   } else {
-    bpmnBtn.style.display = "none";
+    viewSwitchBtn.style.display = "none";
   }
 }
 
@@ -122,19 +127,13 @@ function closeEditorModal() {
   fileSelect.style.display = "none";
   fileSelect.innerHTML = "";
   currentFiles = {};
-  bpmnBtn.style.display = "none";
+  viewSwitchBtn.style.display = "none";
 
   if (isFullscreen) {
     exitFullscreen();
   }
 }
 
-function closeBpmnViewer() {
-  bpmnModal.style.display = "none";
-  bpmnModal.classList.remove("show");
-  bpmnModal.querySelector(".modal-content").classList.remove("show");
-  bpmnFrame.src = "";
-}
 
 function toggleFullscreen() {
   if (!isFullscreen) {
@@ -200,4 +199,102 @@ function prettyPrintXML(xml) {
     }
   });
   return formatted.trim();
+}
+
+function toggleViewMode() {
+  if (!monacoEditor) return;
+  if (isRenderedView) {
+    renderedView.style.display = "none";
+    document.getElementById("monacoEditor").style.display = "block";
+    isRenderedView = false;
+  } else {
+    showRenderedView(monacoEditor.getValue(), currentFileName);
+    renderedView.style.display = "block";
+    document.getElementById("monacoEditor").style.display = "none";
+    isRenderedView = true;
+  }
+}
+
+function showRenderedView(content, fileName) {
+  renderedView.innerHTML = "";
+  const ext = fileName.split(".").pop().toLowerCase();
+  if (ext === "iflw") {
+    const base64 = btoa(unescape(encodeURIComponent(content)));
+    const encoded = encodeURIComponent(base64);
+    renderedView.innerHTML = `<iframe src="bpmn_viewer.html?data=${encoded}&lang=${currentLang}"></iframe>`;
+  } else if (ext === "json") {
+    try {
+      const obj = JSON.parse(content);
+      renderedView.classList.add("tree-view");
+      renderedView.appendChild(buildJsonTree(obj));
+    } catch (e) {
+      renderedView.textContent = t("error_label") + e.message;
+    }
+  } else if (ext === "mmap") {
+    try {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(content, "text/xml");
+      renderedView.classList.add("tree-view");
+      renderedView.appendChild(buildXmlTree(xmlDoc.documentElement));
+    } catch (e) {
+      renderedView.textContent = t("error_label") + e.message;
+    }
+  } else if (["project", "mf", "prop", "propdef"].includes(ext)) {
+    renderedView.classList.add("table-view");
+    renderedView.innerHTML = buildTableView(content);
+  }
+}
+
+function buildJsonTree(obj) {
+  const ul = document.createElement("ul");
+  for (const key in obj) {
+    const li = document.createElement("li");
+    if (typeof obj[key] === "object" && obj[key] !== null) {
+      li.textContent = key;
+      li.appendChild(buildJsonTree(obj[key]));
+    } else {
+      li.textContent = `${key}: ${obj[key]}`;
+    }
+    ul.appendChild(li);
+  }
+  return ul;
+}
+
+function buildXmlTree(node) {
+  const li = document.createElement("li");
+  let text = node.nodeName;
+  if (node.attributes && node.attributes.length) {
+    const attrs = [];
+    for (const attr of node.attributes) {
+      attrs.push(`${attr.name}=${attr.value}`);
+    }
+    text += ` [${attrs.join(", ")}]`;
+  }
+  li.textContent = text;
+  const children = Array.from(node.childNodes).filter((n) => n.nodeType === 1);
+  if (children.length) {
+    const ul = document.createElement("ul");
+    children.forEach((child) => ul.appendChild(buildXmlTree(child)));
+    li.appendChild(ul);
+  }
+  const wrapper = document.createElement("ul");
+  wrapper.appendChild(li);
+  return wrapper;
+}
+
+function buildTableView(text) {
+  const rows = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l);
+  let html = "<table><tbody>";
+  rows.forEach((line) => {
+    const parts = line.split(/[:=]/);
+    if (parts.length >= 2) {
+      const key = escapeHtml(parts.shift());
+      const val = escapeHtml(parts.join("="));
+      html += `<tr><td>${key}</td><td>${val}</td></tr>`;
+    } else {
+      html += `<tr><td colspan="2">${escapeHtml(line)}</td></tr>`;
+    }
+  });
+  html += "</tbody></table>";
+  return html;
 }

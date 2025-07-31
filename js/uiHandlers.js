@@ -23,13 +23,9 @@ fileInput.addEventListener("change", (e) => {
 });
 
 closeModal.addEventListener("click", closeEditorModal);
-closeBpmnModal.addEventListener("click", closeBpmnViewer);
+refreshBtn.addEventListener("click", () => location.reload());
 
-bpmnModal.addEventListener("click", (e) => {
-  if (e.target === bpmnModal) {
-    closeBpmnViewer();
-  }
-});
+viewSwitchBtn.addEventListener("click", toggleViewMode);
 
 modal.addEventListener("click", (e) => {
   if (e.target === modal) {
@@ -80,21 +76,6 @@ copyBtn.addEventListener("click", () => {
   }
 });
 
-bpmnBtn.addEventListener("click", () => {
-  if (!monacoEditor) return;
-  const ext = currentFileName.split(".").pop().toLowerCase();
-  if (ext !== "iflw" && ext !== "bpmn" && ext !== "xml") {
-    alert(t("not_bpmn"));
-    return;
-  }
-  const xml = monacoEditor.getValue();
-  const base64 = btoa(unescape(encodeURIComponent(xml)));
-  const encoded = encodeURIComponent(base64);
-  bpmnFrame.src = `bpmn_viewer.html?data=${encoded}&lang=${currentLang}`;
-  bpmnModal.style.display = "block";
-  bpmnModal.classList.add("show");
-  bpmnModal.querySelector(".modal-content").classList.add("show");
-});
 
 formatBtn.addEventListener("click", () => {
   if (monacoEditor) {
