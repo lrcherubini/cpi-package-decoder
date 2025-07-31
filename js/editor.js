@@ -400,11 +400,12 @@ function buildMmapView(text) {
       li.dataset.path = full;
       if (Object.keys(obj[key]).length) {
         const icon = document.createElement("span");
-        icon.textContent = "►";
+        // Start with nodes expanded
+        icon.textContent = "▼";
         icon.className = "tree-node-icon";
         li.prepend(icon);
         const child = buildTree(obj[key], full);
-        child.style.display = "none";
+        child.style.display = "block";
         li.appendChild(child);
         icon.addEventListener("click", (e) => {
           e.stopPropagation();
