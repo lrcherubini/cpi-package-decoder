@@ -13,6 +13,7 @@ O SAP CPI Package Decoder é uma aplicação web client-side que permite aos des
 - **Exploração de recursos**: Lista e permite visualizar todos os recursos do pacote (`resources.cnt`)
 - **Visualização de scripts**: Suporte para ScriptCollections e scripts individuais (Groovy, JavaScript, etc.)
 - **Visualização de BPMN**: Botão para exibir arquivos `.iflw` como diagramas BPMN
+- **Suporte a artefatos de iFlow**: Permite carregar arquivos ZIP exportados diretamente de um iFlow
 - **Interface intuitiva**: Drag & drop ou seleção de arquivos
 - **Processamento local**: Toda a decodificação acontece no navegador (sem upload para servidores)
 
@@ -22,6 +23,7 @@ O SAP CPI Package Decoder é uma aplicação web client-side que permite aos des
    - No SAP CPI Web UI, vá para o seu pacote de integração
    - Clique em "Actions" → "Export"
    - Baixe o arquivo `.zip` resultante
+   - Também é possível exportar individualmente um iFlow (ZIP) e carregá-lo
 
 2. **Carregue o arquivo na ferramenta**:
    - Abra o `index.html` no seu navegador
@@ -89,6 +91,7 @@ A ferramenta processa os seguintes arquivos do pacote SAP CPI:
 | `contentmetadata.md` | Metadados do pacote | Base64 → Text |
 | `resources.cnt` | Lista de recursos | Base64 → JSON |
 | `{resourceId}_content` | Conteúdo dos recursos | Binary/ZIP → Text/Scripts |
+| `IFlow.zip` | Artefato iFlow exportado | ZIP → Text/BPMN |
 
 ## 🔍 Tipos de Recursos Suportados
 
