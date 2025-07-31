@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en-US">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,7 +12,7 @@
         <h1>🔓 SAP CPI Package Decoder</h1>
         <select id="langSelect" class="lang-select">
           <option value="pt-BR">Português</option>
-          <option value="en-US">English</option>
+          <option value="en-US" selected>English</option>
           <option value="es-ES">Español</option>
         </select>
         <p data-i18n="subtitle">
@@ -57,6 +57,7 @@
 
         <div id="downloadSection" class="result-section" style="display: none; text-align: center;">
           <button id="downloadBtn" class="download-btn" data-i18n="download_decoded">⬇️ Baixar Recursos Decodificados</button>
+          <button id="refreshBtn" class="download-btn" title="Refresh">🔄</button>
         </div>
 
         <div id="results" class="results"></div>
@@ -90,23 +91,13 @@
             <select id="fileSelect" class="file-select"></select>
             <button id="formatBtn" class="control-btn" title="Formatar código">✨</button>
             <button id="copyBtn" class="control-btn" title="Copiar conteúdo">📋</button>
-            <button id="bpmnBtn" class="control-btn" title="Visualizar BPMN" style="display:none;">🗺️</button>
+            <button id="viewSwitchBtn" class="control-btn" style="display:none;" title="Switch View">🔀</button>
             <button id="fullscreenBtn" class="control-btn" title="Tela cheia">⛶</button>
             <button id="closeModal" class="close-btn">&times;</button>
           </div>
         </div>
         <div id="monacoEditor" class="monaco-container"></div>
-      </div>
-    </div>
-
-    <!-- Modal for BPMN Viewer -->
-    <div id="bpmnModal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>BPMN Viewer</h3>
-          <button id="closeBpmnModal" class="close-btn">&times;</button>
-        </div>
-        <iframe id="bpmnFrame" style="flex:1;width:100%;border:none;"></iframe>
+        <div id="renderedView" class="rendered-container" style="display:none;"></div>
       </div>
     </div>
 

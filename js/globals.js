@@ -9,12 +9,11 @@ const languageSelect = document.getElementById("languageSelect");
 const fileSelect = document.getElementById("fileSelect");
 const formatBtn = document.getElementById("formatBtn");
 const copyBtn = document.getElementById("copyBtn");
-const bpmnBtn = document.getElementById("bpmnBtn");
+const viewSwitchBtn = document.getElementById("viewSwitchBtn");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
 const downloadBtn = document.getElementById("downloadBtn");
-const bpmnModal = document.getElementById("bpmnModal");
-const bpmnFrame = document.getElementById("bpmnFrame");
-const closeBpmnModal = document.getElementById("closeBpmnModal");
+const refreshBtn = document.getElementById("refreshBtn");
+const renderedView = document.getElementById("renderedView");
 const langSelect = document.getElementById("langSelect");
 
 let fileContents = {}; // Conteúdo dos arquivos do ZIP principal

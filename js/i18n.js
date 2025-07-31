@@ -28,7 +28,9 @@ const translations = {
     file_click_hint: "💡 Clique em qualquer arquivo para visualizar seu conteúdo.",
     resources_found: "📋 Recursos encontrados:",
     resource_details: "Tipo: {type} | Versão: {version} | Modificado por: {user}",
-    resource_click_hint: "💡 Clique em qualquer recurso para visualizar seu conteúdo no editor. Recursos do tipo URL serão abertos em nova janela"
+    resource_click_hint: "💡 Clique em qualquer recurso para visualizar seu conteúdo no editor. Recursos do tipo URL serão abertos em nova janela",
+    switch_view: "Alternar visualização",
+    refresh: "Atualizar"
   },
   "en-US": {
     title: "SAP CPI Package Decoder",
@@ -59,7 +61,9 @@ const translations = {
     file_click_hint: "💡 Click any file to view its contents.",
     resources_found: "📋 Resources found:",
     resource_details: "Type: {type} | Version: {version} | Modified by: {user}",
-    resource_click_hint: "💡 Click any resource to view its content in the editor. URL resources will open in a new window"
+    resource_click_hint: "💡 Click any resource to view its content in the editor. URL resources will open in a new window",
+    switch_view: "Switch View",
+    refresh: "Refresh"
   },
   "es-ES": {
     title: "SAP CPI Package Decoder",
@@ -90,11 +94,13 @@ const translations = {
     file_click_hint: "💡 Haz clic en cualquier archivo para ver su contenido.",
     resources_found: "📋 Recursos encontrados:",
     resource_details: "Tipo: {type} | Versión: {version} | Modificado por: {user}",
-    resource_click_hint: "💡 Haz clic en cualquier recurso para ver su contenido en el editor. Los recursos tipo URL se abrirán en una nueva ventana"
+    resource_click_hint: "💡 Haz clic en cualquier recurso para ver su contenido en el editor. Los recursos tipo URL se abrirán en una nueva ventana",
+    switch_view: "Cambiar vista",
+    refresh: "Actualizar"
   }
 };
 
-let currentLang = 'pt-BR';
+let currentLang = 'en-US';
 
 function t(key) {
   return translations[currentLang][key] || translations['en-US'][key] || key;
@@ -109,8 +115,10 @@ function applyTranslations() {
   });
   document.getElementById('formatBtn').title = t('format_code');
   document.getElementById('copyBtn').title = t('copy_content');
-  document.getElementById('bpmnBtn').title = t('view_bpmn');
+  document.getElementById('viewSwitchBtn').title = t('switch_view');
+  document.getElementById('refreshBtn').title = t('refresh');
   document.getElementById('fullscreenBtn').title = t('fullscreen');
+  document.getElementById('langSelect').value = currentLang;
 }
 
 function setLanguage(lang) {
