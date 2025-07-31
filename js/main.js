@@ -264,7 +264,11 @@ function handleZipFile(file) {
       }
 
       if (downloadSection) {
-        downloadSection.style.display = "block";
+        if (resourcesCnt || contentMetadata) {
+          downloadSection.style.display = "block";
+        } else {
+          downloadSection.style.display = "none";
+        }
       }
     });
   });
