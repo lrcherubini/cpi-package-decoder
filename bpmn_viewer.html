@@ -16,8 +16,24 @@
 (function(){
   const params = new URLSearchParams(window.location.search);
   const dataParam = params.get('data');
+  const lang = params.get('lang') || 'pt-BR';
+  const messages = {
+    'pt-BR': {
+      noData: 'Nenhum dado BPMN fornecido.',
+      error: 'Erro ao carregar diagrama: '
+    },
+    'en-US': {
+      noData: 'No BPMN data provided.',
+      error: 'Error loading diagram: '
+    },
+    'es-ES': {
+      noData: 'No se proporcionaron datos BPMN.',
+      error: 'Error al cargar el diagrama: '
+    }
+  };
+  const msg = messages[lang] || messages['en-US'];
   if (!dataParam) {
-      document.body.innerHTML = '<p>No BPMN data provided.</p>';
+      document.body.innerHTML = '<p>' + msg.noData + '</p>';
       return;
     }
     const xml = atob(decodeURIComponent(dataParam));
@@ -25,7 +41,7 @@
   viewer.importXML(xml).then(function(){
     viewer.get('canvas').zoom('fit-viewport');
   }).catch(function(err){
-    document.body.innerHTML = '<pre>Erro ao carregar diagrama: ' + err + '</pre>';
+    document.body.innerHTML = '<pre>' + msg.error + err + '</pre>';
   });
 })();
 </script>
