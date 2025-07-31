@@ -37,6 +37,10 @@ modal.addEventListener("click", (e) => {
   }
 });
 
+langSelect.addEventListener("change", (e) => {
+  setLanguage(e.target.value);
+});
+
 languageSelect.addEventListener("change", (e) => {
   if (monacoEditor) {
     monaco.editor.setModelLanguage(monacoEditor.getModel(), e.target.value);
@@ -80,13 +84,13 @@ bpmnBtn.addEventListener("click", () => {
   if (!monacoEditor) return;
   const ext = currentFileName.split(".").pop().toLowerCase();
   if (ext !== "iflw" && ext !== "bpmn" && ext !== "xml") {
-    alert("Arquivo atual não é um IFLW/BPMN.");
+    alert(t("not_bpmn"));
     return;
   }
   const xml = monacoEditor.getValue();
   const base64 = btoa(unescape(encodeURIComponent(xml)));
   const encoded = encodeURIComponent(base64);
-  bpmnFrame.src = `bpmn_viewer.html?data=${encoded}`;
+  bpmnFrame.src = `bpmn_viewer.html?data=${encoded}&lang=${currentLang}`;
   bpmnModal.style.display = "block";
   bpmnModal.classList.add("show");
   bpmnModal.querySelector(".modal-content").classList.add("show");

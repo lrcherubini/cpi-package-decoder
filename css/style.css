@@ -20,6 +20,9 @@ body {
   color: white;
   padding: 30px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .content {
@@ -345,3 +348,10 @@ input[type="file"] {
   width: 100%;
   border: none;
 }
+.lang-select {
+  margin-top: 10px;
+  padding: 5px;
+  border-radius: 4px;
+  border: none;
+}
+
