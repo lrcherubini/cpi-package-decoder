@@ -2,6 +2,8 @@
 
 Uma ferramenta web para decodificar e visualizar o conteúdo de pacotes exportados do SAP Cloud Platform Integration (CPI).
 
+Disponível também em [English](README.en-US.md) e [Español](README.es-ES.md).
+
 ## 📋 Visão Geral
 
 O SAP CPI Package Decoder é uma aplicação web client-side que permite aos desenvolvedores e administradores SAP CPI visualizar e examinar o conteúdo de pacotes de integração exportados, incluindo scripts, metadados e recursos sem a necessidade de ferramentas externas.

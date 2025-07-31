@@ -55,7 +55,7 @@ function openResourceInMonaco(resourceId, resourceName, resourceType) {
 
   if (resourceType && resourceType.toUpperCase() === "CONTENTPACKAGE") {
     if (!resourcesCntDecoded) {
-      alert("resources.cnt não encontrado ou não processado.");
+      alert(t("no_resources"));
       return;
     }
     content = resourcesCntDecoded;
@@ -64,7 +64,7 @@ function openResourceInMonaco(resourceId, resourceName, resourceType) {
     const contentFileName = resourceId + "_content";
     content = getFileContent(contentFileName);
     if (!content) {
-      alert("Nenhum conteúdo associado a este recurso.");
+      alert(t("no_content"));
       return;
     }
   }
@@ -86,7 +86,7 @@ function openResourceInMonaco(resourceId, resourceName, resourceType) {
 function openIflowFile(filePath) {
   const content = getFileContent(filePath);
   if (!content) {
-    alert("Arquivo não encontrado: " + filePath);
+    alert(t("file_not_found") + filePath);
     return;
   }
 
@@ -108,7 +108,7 @@ function downloadFileResource(resourceId, resourceName) {
   const contentFileName = resourceId + "_content";
   const content = getFileContent(contentFileName);
   if (!content) {
-    alert("Nenhum conteúdo associado a este recurso.");
+    alert(t("no_content"));
     return;
   }
   const sanitized = (resourceName || resourceId).replace(/[\s/\\?%*:|"<>]/g, "_");
@@ -129,11 +129,11 @@ function processFile(fileName, content) {
   let title = "";
   try {
     if (fileName === "contentmetadata.md") {
-      title = "📋 Metadados do Conteúdo (contentmetadata.md)";
+      title = t("content_metadata_title");
       const decoded = atob(content.trim());
       processedContent = `<div class="code-block">${escapeHtml(decoded)}</div>`;
     } else if (fileName === "resources.cnt") {
-      title = "📦 Recursos do Pacote (resources.cnt)";
+      title = t("package_resources_title");
       const decoded = atob(content.trim());
       const jsonData = JSON.parse(decoded);
       resourcesCntDecoded = JSON.stringify(jsonData, null, 2);
@@ -144,8 +144,8 @@ function processFile(fileName, content) {
       results.appendChild(resultDiv);
     }
   } catch (error) {
-    resultDiv.innerHTML = `<div class="result-title error">❌ Erro ao processar ${fileName}</div>` +
-      `<div class="error">Erro: ${error.message}</div>` +
+    resultDiv.innerHTML = `<div class="result-title error">${t("processing_error_title")}${fileName}</div>` +
+      `<div class="error">${t("error_label")}${error.message}</div>` +
       `<div class="code-block">${escapeHtml(String(content).substring(0, 500))}...</div>`;
     results.appendChild(resultDiv);
   }
@@ -156,7 +156,7 @@ function displayIflowFileList() {
   if (files.length === 0) return;
   const resultDiv = document.createElement("div");
   resultDiv.className = "result-section";
-  let html = '<div class="result-title">📂 Arquivos do IFlow</div>';
+  let html = `<div class="result-title">${t("iflow_files_title")}</div>`;
   html += '<ul class="script-list">';
   files.forEach((fn) => {
     const displayName = fn.split("/").pop();
@@ -166,7 +166,7 @@ function displayIflowFileList() {
             `</li>`;
   });
   html += '</ul>';
-  html += '<p style="margin-top: 15px; color: #666; font-style: italic;">💡 Clique em qualquer arquivo para visualizar seu conteúdo.</p>';
+  html += `<p style="margin-top: 15px; color: #666; font-style: italic;">${t("file_click_hint")}</p>`;
   resultDiv.innerHTML = html;
   results.appendChild(resultDiv);
 }
@@ -174,7 +174,7 @@ function displayIflowFileList() {
 function formatPackageInfo(data) {
   let html = "";
   if (data.resources) {
-    html += "<h5>📋 Recursos encontrados:</h5>";
+    html += `<h5>${t("resources_found")}</h5>`;
     html += '<ul class="script-list">';
     data.resources.forEach((resource) => {
       const urlDataAttr = resource.additionalAttributes.url
@@ -182,11 +182,14 @@ function formatPackageInfo(data) {
         : "";
       html += `<li class="script-item" data-resource-id="${resource.id}" data-resource-type="${resource.resourceType}"${urlDataAttr}>` +
               `<div class="script-name">${resource.displayName || resource.name}</div>` +
-              `<div class="script-type">Tipo: ${resource.resourceType} | Versão: ${resource.semanticVersion || resource.version} | Modificado por: ${resource.modifiedBy}</div>` +
+              `<div class="script-type">${t("resource_details")
+                .replace('{type}', resource.resourceType)
+                .replace('{version}', resource.semanticVersion || resource.version)
+                .replace('{user}', resource.modifiedBy)}</div>` +
               `</li>`;
     });
     html += "</ul>";
-    html += '<p style="margin-top: 15px; color: #666; font-style: italic;">💡 Clique em qualquer recurso para visualizar seu conteúdo no editor. Recursos do tipo URL serão abertos em nova janela</p>';
+    html += `<p style="margin-top: 15px; color: #666; font-style: italic;">${t("resource_click_hint")}</p>`;
   }
   return html;
 }
@@ -199,7 +202,7 @@ function escapeHtml(text) {
 
 function downloadResources() {
   if (!resourcesCntDecoded) {
-    alert("Nenhum recurso processado para download.");
+    alert(t("no_resources_download"));
     return;
   }
 

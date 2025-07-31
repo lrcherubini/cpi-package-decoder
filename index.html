@@ -10,7 +10,12 @@
     <div class="container">
       <div class="header">
         <h1>🔓 SAP CPI Package Decoder</h1>
-        <p>
+        <select id="langSelect" class="lang-select">
+          <option value="pt-BR">Português</option>
+          <option value="en-US">English</option>
+          <option value="es-ES">Español</option>
+        </select>
+        <p data-i18n="subtitle">
           Decodifique e visualize o conteúdo de pacotes exportados do SAP Cloud
           Integration
         </p>
@@ -18,46 +23,46 @@
 
       <div class="content">
         <div class="info-box">
-          <strong>Como usar:</strong>
+          <strong data-i18n="how_to_use">Como usar:</strong>
           <ol>
             <li>
-              Faça o upload do arquivo <code>.zip</code> exportado do SAP CPI.
+              <span data-i18n="step_upload">Faça o upload do arquivo <code>.zip</code> exportado do SAP CPI.</span>
             </li>
             <li>
-              Os arquivos contidos no pacote serão automaticamente
-              decodificados.
+              <span data-i18n="step_auto">Os arquivos contidos no pacote serão automaticamente
+              decodificados.</span>
             </li>
           </ol>
         </div>
 
         <div class="upload-area" id="uploadArea">
           <div>
-            <h3>📁 Arraste o arquivo .zip aqui ou clique para selecionar</h3>
+            <h3 data-i18n="drag_drop">📁 Arraste o arquivo .zip aqui ou clique para selecionar</h3>
             <button
               class="upload-btn"
               onclick="document.getElementById('fileInput').click()"
             >
-              Selecionar Arquivo ZIP
+              <span data-i18n="select_zip">Selecionar Arquivo ZIP</span>
             </button>
             <input
               type="file"
               id="fileInput"
               accept=".zip"
             />
-            <p style="margin-top: 15px; color: #666">
+            <p style="margin-top: 15px; color: #666" data-i18n="supports_zip">
               Suporta: Pacotes .zip do SAP CPI
             </p>
           </div>
         </div>
 
         <div id="downloadSection" class="result-section" style="display: none; text-align: center;">
-          <button id="downloadBtn" class="download-btn">⬇️ Baixar Recursos Decodificados</button>
+          <button id="downloadBtn" class="download-btn" data-i18n="download_decoded">⬇️ Baixar Recursos Decodificados</button>
         </div>
 
         <div id="results" class="results"></div>
 
         <div class="project-info">
-          <p>
+          <p data-i18n="project_info">
             Este projeto está disponível no
             <a href="https://github.com/lrcherubini/cpi-package-decoder" target="_blank" rel="noopener noreferrer">GitHub</a>.
             Colaborações são bem-vindas!
@@ -70,7 +75,7 @@
     <div id="editorModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 id="modalTitle">Conteúdo do Arquivo</h3>
+          <h3 id="modalTitle" data-i18n="modal_title">Conteúdo do Arquivo</h3>
           <div class="modal-controls">
             <select id="languageSelect" class="language-select">
               <option value="javascript">JavaScript</option>
@@ -106,6 +111,7 @@
     </div>
 
     <script src="lib/jszip.min.js"></script>
+    <script src="js/i18n.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
     <script src="js/globals.js"></script>
     <script src="js/editor.js"></script>

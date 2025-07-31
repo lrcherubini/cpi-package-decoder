@@ -15,6 +15,7 @@ const downloadBtn = document.getElementById("downloadBtn");
 const bpmnModal = document.getElementById("bpmnModal");
 const bpmnFrame = document.getElementById("bpmnFrame");
 const closeBpmnModal = document.getElementById("closeBpmnModal");
+const langSelect = document.getElementById("langSelect");
 
 let fileContents = {}; // Conteúdo dos arquivos do ZIP principal
 let resourcesCntDecoded = "";
