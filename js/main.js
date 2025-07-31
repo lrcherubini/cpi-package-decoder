@@ -194,7 +194,9 @@ document.addEventListener("keydown", (e) => {
 // --- Listener de Eventos Generalizado ---
 results.addEventListener("click", function (e) {
   const scriptItem = e.target.closest(".script-item");
-  if (scriptItem && scriptItem.dataset.resourceId) {
+  if (!scriptItem) return;
+
+  if (scriptItem.dataset.resourceId) {
     const resourceId = scriptItem.dataset.resourceId;
     const resourceName = scriptItem.querySelector(".script-name").textContent;
     const resourceType = scriptItem.dataset.resourceType;
@@ -211,6 +213,9 @@ results.addEventListener("click", function (e) {
     }
 
     openResourceInMonaco(resourceId, resourceName, resourceType);
+  } else if (scriptItem.dataset.filePath) {
+    const filePath = scriptItem.dataset.filePath;
+    openIflowFile(filePath);
   }
 });
 
@@ -232,9 +237,10 @@ function handleZipFile(file) {
     const promises = [];
     zip.forEach((relativePath, zipEntry) => {
       // Diferencia o conteúdo binário (_content) do conteúdo de texto
-      const fileType = zipEntry.name.endsWith("_content")
-        ? "arraybuffer"
-        : "string";
+      let fileType = "string";
+      if (zipEntry.name.endsWith("_content") || /\.(zip|jar)$/i.test(zipEntry.name)) {
+        fileType = "arraybuffer";
+      }
       const promise = zipEntry.async(fileType).then((content) => {
         fileContents[zipEntry.name] = content;
       });
@@ -244,12 +250,17 @@ function handleZipFile(file) {
     // Após carregar todos os arquivos, processa os principais
     Promise.all(promises).then(() => {
       const resourcesCnt = getFileContent("resources.cnt");
+      const contentMetadata = getFileContent("contentmetadata.md");
+
       if (resourcesCnt) {
         processFile("resources.cnt", resourcesCnt);
       }
-      const contentMetadata = getFileContent("contentmetadata.md");
       if (contentMetadata) {
         processFile("contentmetadata.md", contentMetadata);
+      }
+
+      if (!resourcesCnt && !contentMetadata) {
+        displayIflowFileList();
       }
 
       if (downloadSection) {
@@ -295,6 +306,30 @@ function openResourceInMonaco(resourceId, resourceName, resourceType) {
     });
   } else {
     loadContentIntoMonaco(content, fileName);
+  }
+}
+
+/**
+ * Abre um arquivo individual de um iFlow ZIP
+ */
+function openIflowFile(filePath) {
+  const content = getFileContent(filePath);
+  if (!content) {
+    alert("Arquivo não encontrado: " + filePath);
+    return;
+  }
+
+  modalTitle.textContent = `📄 ${filePath}`;
+  modal.style.display = "block";
+  modal.classList.add("show");
+  modal.querySelector(".modal-content").classList.add("show");
+
+  if (!monacoEditor) {
+    require(["vs/editor/editor.main"], function () {
+      initializeMonacoEditor(content, filePath);
+    });
+  } else {
+    loadContentIntoMonaco(content, filePath);
   }
 }
 
@@ -564,6 +599,27 @@ function processFile(fileName, content) {
   }
 }
 
+function displayIflowFileList() {
+  const files = Object.keys(fileContents).filter((name) => !name.endsWith("/"));
+  if (files.length === 0) return;
+
+  const resultDiv = document.createElement("div");
+  resultDiv.className = "result-section";
+  let html = '<div class="result-title">📂 Arquivos do IFlow</div>';
+  html += '<ul class="script-list">';
+  files.forEach((fn) => {
+    const displayName = fn.split("/").pop();
+    html += `<li class="script-item" data-file-path="${fn}">
+                <div class="script-name">${displayName}</div>
+                <div class="script-type">${fn}</div>
+             </li>`;
+  });
+  html += '</ul>';
+  html += '<p style="margin-top: 15px; color: #666; font-style: italic;">💡 Clique em qualquer arquivo para visualizar seu conteúdo.</p>';
+  resultDiv.innerHTML = html;
+  results.appendChild(resultDiv);
+}
+
 /**
  * Formata as informações dos recursos para exibição em uma lista.
  */
@@ -711,3 +767,4 @@ function downloadResources() {
     });
   });
 }
+
