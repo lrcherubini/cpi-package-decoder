@@ -43,7 +43,10 @@ sap-cpi-decoder/
 ├── css/
 │   └── style.css           # Estilos da interface
 ├── js/
-│   └── main.js             # Lógica principal da aplicação
+│   ├── globals.js         # Variáveis e configuração geral
+│   ├── editor.js          # Funções do Monaco Editor
+│   ├── fileLoader.js      # Processamento de ZIP e recursos
+│   └── uiHandlers.js      # Eventos da interface
 ├── lib/
 │   └── jszip.min.js        # Biblioteca para processamento de ZIP
 ├── .vscode/
