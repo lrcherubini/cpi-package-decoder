@@ -428,12 +428,17 @@ function buildMmapView(text) {
   const dstTree = buildHierarchy(dstPaths);
 
   const mapping = {};
+  function addMapping(a, b) {
+    if (!a || !b) return;
+    mapping[a] = mapping[a] || new Set();
+    mapping[a].add(b);
+  }
   bricks.forEach((b) => {
     const sp = b.getAttribute("srcPath") || (b.getAttribute("type") === "Src" ? b.getAttribute("path") : null);
     const dp = b.getAttribute("dstPath") || (b.getAttribute("type") === "Dst" ? b.getAttribute("path") : null);
     if (sp && dp) {
-      mapping[sp] = dp;
-      mapping[dp] = sp;
+      addMapping(sp, dp);
+      addMapping(dp, sp);
     }
   });
 
@@ -450,15 +455,21 @@ function buildMmapView(text) {
   container.addEventListener("click", (e) => {
     const li = e.target.closest("li");
     if (!li || !li.dataset.path) return;
-    const otherPath = mapping[li.dataset.path];
+    const paths = new Set([li.dataset.path]);
+    const related = mapping[li.dataset.path];
+    if (related) {
+      related.forEach((p) => paths.add(p));
+    }
     container.querySelectorAll(".highlight").forEach((el) =>
       el.classList.remove("highlight")
     );
-    li.classList.add("highlight");
-    if (otherPath) {
-      const other = container.querySelector(`li[data-path="${otherPath}"]`);
-      if (other) other.classList.add("highlight");
-    }
+    const escapeCSS = (s) => (CSS && CSS.escape ? CSS.escape(s) : s.replace(/"/g, '\\"'));
+    paths.forEach((p) => {
+      const selector = `li[data-path="${escapeCSS(p)}"]`;
+      container.querySelectorAll(selector).forEach((node) => {
+        node.classList.add("highlight");
+      });
+    });
   });
 
   return container;
