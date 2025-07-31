@@ -217,8 +217,19 @@ function toggleViewMode() {
 
 function showRenderedView(content, fileName) {
   renderedView.innerHTML = "";
-  const ext = fileName.split(".").pop().toLowerCase();
-  if (ext === "iflw") {
+  renderedView.className = "rendered-container";
+  const lowerName = fileName.toLowerCase();
+  const ext = lowerName.split(".").pop();
+  if (lowerName === "resources_decoded.json") {
+    try {
+      const obj = JSON.parse(content);
+      renderedView.innerHTML = buildResourcesTable(obj);
+      const tbl = renderedView.querySelector("table");
+      if (tbl) enableResourceTableInteraction(tbl);
+    } catch (e) {
+      renderedView.textContent = t("error_label") + e.message;
+    }
+  } else if (ext === "iflw") {
     const base64 = btoa(unescape(encodeURIComponent(content)));
     const encoded = encodeURIComponent(base64);
     renderedView.innerHTML = `<iframe src="bpmn_viewer.html?data=${encoded}&lang=${currentLang}"></iframe>`;
@@ -232,16 +243,16 @@ function showRenderedView(content, fileName) {
     }
   } else if (ext === "mmap") {
     try {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(content, "text/xml");
-      renderedView.classList.add("tree-view");
-      renderedView.appendChild(buildXmlTree(xmlDoc.documentElement));
+      renderedView.appendChild(buildMmapView(content));
     } catch (e) {
       renderedView.textContent = t("error_label") + e.message;
     }
   } else if (["project", "mf", "prop", "propdef"].includes(ext)) {
-    renderedView.classList.add("table-view");
-    renderedView.innerHTML = buildTableView(content);
+    if (ext === "project") {
+      renderedView.innerHTML = buildMetadataTableFromXml(content);
+    } else {
+      renderedView.innerHTML = buildMetadataTableFromLines(content);
+    }
   }
 }
 
@@ -297,4 +308,158 @@ function buildTableView(text) {
   });
   html += "</tbody></table>";
   return html;
+}
+
+function buildMetadataTableFromLines(text) {
+  const rows = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l);
+  let html =
+    '<table class="metadata-table"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>';
+  rows.forEach((line) => {
+    const match = line.match(/^([^:=]+)[:=](.*)$/);
+    if (match) {
+      const key = escapeHtml(match[1].trim());
+      const val = escapeHtml(match[2].trim());
+      html += `<tr><td>${key}</td><td>${val}</td></tr>`;
+    }
+  });
+  html += "</tbody></table>";
+  return html;
+}
+
+function buildMetadataTableFromXml(text) {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(text, "text/xml");
+  const nodes = Array.from(xmlDoc.documentElement.children);
+  let html =
+    '<table class="metadata-table"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>';
+  nodes.forEach((node) => {
+    const key = escapeHtml(node.nodeName);
+    const val = escapeHtml(node.textContent.trim());
+    html += `<tr><td>${key}</td><td>${val}</td></tr>`;
+  });
+  html += "</tbody></table>";
+  return html;
+}
+
+function buildResourcesTable(obj) {
+  const resources = obj.resources || [];
+  let html =
+    '<table class="resources-table"><thead><tr><th>Display Name</th><th>Type</th><th>Version</th><th>Modified By</th><th>Modified At</th></tr></thead><tbody>';
+  resources.forEach((r) => {
+    html += `<tr><td>${escapeHtml(r.displayName || r.name || "")}</td>` +
+            `<td>${escapeHtml(r.resourceType || "")}</td>` +
+            `<td>${escapeHtml(r.semanticVersion || r.version || "")}</td>` +
+            `<td>${escapeHtml(r.modifiedBy || "")}</td>` +
+            `<td>${escapeHtml(r.modifiedAt || "")}</td></tr>`;
+  });
+  html += "</tbody></table>";
+  return html;
+}
+
+function enableResourceTableInteraction(table) {
+  table.addEventListener("click", (e) => {
+    const row = e.target.closest("tr");
+    if (!row) return;
+    Array.from(table.querySelectorAll(".selected-row")).forEach((r) =>
+      r.classList.remove("selected-row")
+    );
+    row.classList.add("selected-row");
+  });
+}
+
+function buildMmapView(text) {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(text, "text/xml");
+  const bricks = Array.from(xmlDoc.getElementsByTagName("brick"));
+  const srcBricks = bricks.filter((b) => b.getAttribute("type") === "Src");
+  const dstBricks = bricks.filter((b) => b.getAttribute("type") === "Dst");
+
+  function buildHierarchy(paths) {
+    const root = {};
+    paths.forEach((p) => {
+      if (!p) return;
+      const parts = p.split(/[\/]/).filter(Boolean);
+      let node = root;
+      parts.forEach((part) => {
+        node[part] = node[part] || {};
+        node = node[part];
+      });
+    });
+    return root;
+  }
+
+  function buildTree(obj, prefix = "") {
+    const ul = document.createElement("ul");
+    Object.keys(obj).forEach((key) => {
+      const li = document.createElement("li");
+      li.textContent = key;
+      const full = prefix ? prefix + "/" + key : key;
+      li.dataset.path = full;
+      if (Object.keys(obj[key]).length) {
+        const icon = document.createElement("span");
+        icon.textContent = "►";
+        icon.className = "tree-node-icon";
+        li.prepend(icon);
+        const child = buildTree(obj[key], full);
+        child.style.display = "none";
+        li.appendChild(child);
+        icon.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (child.style.display === "none") {
+            child.style.display = "block";
+            icon.textContent = "▼";
+          } else {
+            child.style.display = "none";
+            icon.textContent = "►";
+          }
+        });
+      }
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+
+  const srcPaths = srcBricks.map((b) => b.getAttribute("path"));
+  const dstPaths = dstBricks.map((b) => b.getAttribute("path"));
+  const srcTree = buildHierarchy(srcPaths);
+  const dstTree = buildHierarchy(dstPaths);
+
+  const mapping = {};
+  bricks.forEach((b) => {
+    const sp = b.getAttribute("srcPath") || (b.getAttribute("type") === "Src" ? b.getAttribute("path") : null);
+    const dp = b.getAttribute("dstPath") || (b.getAttribute("type") === "Dst" ? b.getAttribute("path") : null);
+    if (sp && dp) {
+      mapping[sp] = dp;
+      mapping[dp] = sp;
+    }
+  });
+
+  const container = document.createElement("div");
+  container.className = "tree-panel";
+
+  const left = document.createElement("div");
+  const right = document.createElement("div");
+  left.appendChild(buildTree(srcTree));
+  right.appendChild(buildTree(dstTree));
+  container.appendChild(left);
+  container.appendChild(right);
+
+  container.addEventListener("click", (e) => {
+    const li = e.target.closest("li");
+    if (!li || !li.dataset.path) return;
+    const otherPath = mapping[li.dataset.path];
+    container.querySelectorAll(".highlight").forEach((el) =>
+      el.classList.remove("highlight")
+    );
+    li.classList.add("highlight");
+    if (otherPath) {
+      const other = container.querySelector(`li[data-path="${otherPath}"]`);
+      if (other) other.classList.add("highlight");
+    }
+  });
+
+  return container;
 }
