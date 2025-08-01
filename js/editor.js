@@ -883,7 +883,7 @@ async function buildContentPackageView(packageData, allFilesContent) {
     }
 
     // --- Seção 4: Endpoints de Integração (iFlows) ---
-    const iFlows = artifacts.filter(a => a.resourceType === 'IFlow' && allFilesContent[a.name]);
+    const iFlows = artifacts.filter(a => a.resourceType === 'IFlow' && allFilesContent[a.id + '_content']);
     
     if (iFlows.length > 0) {
         const endpointsHeader = document.createElement('h2');
@@ -896,7 +896,7 @@ async function buildContentPackageView(packageData, allFilesContent) {
         
         // Processa cada iFlow de forma assíncrona
         for (const iflow of iFlows) {
-            const iflowContent = allFilesContent[iflow.name];
+            const iflowContent = allFilesContent[iflow.id + '_content'];
             const endpoints = await extractIFlowEndpoints(iflowContent);
             
             if (endpoints.length > 0) {
@@ -950,17 +950,44 @@ function buildRelationsTable(relations, resources) {
 
 /**
  * Usa o bpmn-js em modo "headless" para extrair os participantes de um iFlow.
- * @param {string} iflowXml - O conteúdo XML do arquivo .iflw.
+ * @param {ArrayBuffer|string} iflowZipContent - Conteúdo do iFlow compactado (ZIP) ou XML.
  * @returns {Promise<Array>} Uma promessa que resolve para um array de objetos de endpoint.
  */
-async function extractIFlowEndpoints(iflowXml) {
-  // Usa o BpmnJS do script que você adicionou no HTML
+async function extractIFlowEndpoints(iflowZipContent) {
+  // Usa o BpmnJS e JSZip disponíveis na página
   const BpmnJS = window.BpmnJS;
-  if (!BpmnJS) {
+  const JSZip = window.JSZip;
+  if (!BpmnJS || !JSZip) {
     console.error(
-      "Biblioteca bpmn-js não encontrada. Adicione o script ao seu HTML."
+      "Bibliotecas necessárias não encontradas. Adicione bpmn-js e jszip ao HTML."
     );
     return [];
+  }
+
+  let iflowXml = "";
+
+  try {
+    // O conteúdo vem compactado em formato ZIP; extraímos o primeiro arquivo XML
+    const zip = await new JSZip().loadAsync(iflowZipContent);
+    let xmlEntry;
+    zip.forEach((relPath, entry) => {
+      if (!xmlEntry && !entry.dir && /\.(iflw|bpmn|xml)$/i.test(entry.name)) {
+        xmlEntry = entry;
+      }
+    });
+    if (!xmlEntry) {
+      console.error("Arquivo BPMN não encontrado no iFlow.");
+      return [];
+    }
+    iflowXml = await xmlEntry.async("string");
+  } catch (err) {
+    // Conteúdo pode já ser uma string em XML
+    if (typeof iflowZipContent === "string") {
+      iflowXml = iflowZipContent;
+    } else {
+      console.error("Erro ao descompactar iFlow:", err);
+      return [];
+    }
   }
 
   // Cria uma instância "headless" do viewer, sem um container visual
