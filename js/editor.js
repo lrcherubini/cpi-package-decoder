@@ -1049,6 +1049,7 @@ async function extractIFlowEndpoints(iflowZipContent) {
         let transportProtocol = "";
         let componentType = "";
         let addressParticipant = "";
+        let httpAddrParticipant = "";
 
         // **LÓGICA CORRIGIDA para extrair propriedades do modelo bpmn-js**
         for (const prop of properties) {
@@ -1071,6 +1072,9 @@ async function extractIFlowEndpoints(iflowZipContent) {
               }
               if (key.toLowerCase() === "address") {
                 addressParticipant = value;
+              }
+              if (key === "httpAddressWithoutQuery") {
+                httpAddrParticipant = value;
               }
             }
           }
@@ -1103,6 +1107,11 @@ async function extractIFlowEndpoints(iflowZipContent) {
         ) {
           endpoint.address = addressParticipant;
           
+        } else if (
+          httpAddrParticipant &&
+          !["None", "Not Applicable"].includes(httpAddrParticipant)
+        ) {
+          endpoint.address = httpAddrParticipant;
         }
 
         participants.push(endpoint);
