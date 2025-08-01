@@ -3,13 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SAP CPI Package Decoder</title>
+    <title data-i18n="title">SAP CPI Package Decoder</title>
     <link rel="stylesheet" href="css/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/bpmn-js@17.0.2/dist/assets/bpmn-js.css"
+    />
   </head>
   <body>
     <div class="container">
       <div class="header">
-        <h1>🔓 SAP CPI Package Decoder</h1>
+        <h1 data-i18n="title">🔓 SAP CPI Package Decoder</h1>
         <select id="langSelect" class="lang-select">
           <option value="pt-BR">Português</option>
           <option value="en-US" selected>English</option>
@@ -57,7 +61,7 @@
 
         <div id="downloadSection" class="result-section" style="display: none; text-align: center;">
           <button id="downloadBtn" class="download-btn" data-i18n="download_decoded">⬇️ Baixar Recursos Decodificados</button>
-          <button id="refreshBtn" class="download-btn" title="Refresh">🔄</button>
+          <button id="refreshBtn" class="download-btn" data-i18n="refresh" title="Refresh">🔄</button>
         </div>
 
         <div id="results" class="results"></div>
@@ -72,7 +76,6 @@
       </div>
     </div>
 
-    <!-- Modal for Monaco Editor -->
     <div id="editorModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
@@ -102,6 +105,7 @@
     </div>
 
     <script src="lib/jszip.min.js"></script>
+    <script src="https://unpkg.com/bpmn-js@17.0.2/dist/bpmn-navigated-viewer.development.js"></script>
     <script src="js/i18n.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
     <script src="js/globals.js"></script>
