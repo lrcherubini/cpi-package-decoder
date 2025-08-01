@@ -1,7 +1,7 @@
 // Editor related functions
 let isRenderedView = false;
 
-function initializeMonacoEditor(content, resourceName) {
+function initializeMonacoEditor(content, resourceName, baseFiles = {}) {
   if (!monacoEditor) {
     monacoEditor = monaco.editor.create(
       document.getElementById("monacoEditor"),
@@ -21,11 +21,11 @@ function initializeMonacoEditor(content, resourceName) {
     );
   }
 
-  loadContentIntoMonaco(content, resourceName);
+  loadContentIntoMonaco(content, resourceName, baseFiles);
 }
 
-function loadContentIntoMonaco(content, resourceName) {
-  currentFiles = {};
+function loadContentIntoMonaco(content, resourceName, baseFiles = {}) {
+  currentFiles = { ...baseFiles };
   fileSelect.style.display = "none";
   fileSelect.innerHTML = "";
 
@@ -45,6 +45,7 @@ function loadContentIntoMonaco(content, resourceName) {
           .file(files[0])
           .async("string")
           .then((scriptContent) => {
+            currentFiles[files[0]] = scriptContent;
             setEditorContent(scriptContent, files[0]);
           });
       } else if (files.length > 1) {
@@ -75,6 +76,7 @@ function loadContentIntoMonaco(content, resourceName) {
       reader.onload = function (e) {
         const textContent = e.target.result;
         setEditorContent(textContent, resourceName);
+        currentFiles[resourceName] = textContent;
       };
       reader.readAsText(new Blob([content]));
     });
