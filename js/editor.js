@@ -824,101 +824,126 @@ function enableResourceTableInteraction(table, resources, onRowClick) {
  * informações, artefatos e relações.
  */
 async function buildContentPackageView(packageData, allFilesContent) {
-    const container = document.createElement('div');
-    container.className = 'package-view-container';
+  const container = document.createElement("div");
+  container.className = "package-view-container";
 
-    // Separa a informação do pacote principal dos artefatos contidos nele
-    const packageInfo = packageData.resources.find(r => r.resourceType === 'ContentPackage');
-    const artifacts = packageData.resources.filter(r => r.resourceType !== 'ContentPackage');
-    const relations = packageData.relations || [];
+  // Separa a informação do pacote principal dos artefatos contidos nele
+  const packageInfo = packageData.resources.find(
+    (r) => r.resourceType === "ContentPackage"
+  );
+  const artifacts = packageData.resources.filter(
+    (r) => r.resourceType !== "ContentPackage"
+  );
+  const relations = packageData.relations || [];
 
-    // --- Seção 1: Informações do Pacote ---
-    if (packageInfo) {
-        const infoHeader = document.createElement('h2');
-        infoHeader.textContent = 'Informações do Pacote';
-        container.appendChild(infoHeader);
+  // --- Seção 1: Informações do Pacote ---
+  if (packageInfo) {
+    const infoHeader = document.createElement("h2");
+    infoHeader.textContent = "Informações do Pacote";
+    container.appendChild(infoHeader);
 
-        const infoTable = document.createElement('table');
-        infoTable.className = 'metadata-table';
-        let infoHtml = '<tbody>';
-        infoHtml += `<tr><td class="main-key">Nome</td><td>${escapeHtml(packageInfo.displayName)}</td></tr>`;
-        infoHtml += `<tr><td class="main-key">Versão</td><td>${escapeHtml(packageInfo.semanticVersion)}</td></tr>`;
-        
-        if (packageInfo.additionalAttributes?.shortText?.attributeValues[0]) {
-            infoHtml += `<tr><td class="main-key">Descrição</td><td>${escapeHtml(packageInfo.additionalAttributes.shortText.attributeValues[0])}</td></tr>`;
-        }
-        if (packageInfo.additionalAttributes?.Vendor?.attributeValues[0]) {
-             infoHtml += `<tr><td class="main-key">Vendor</td><td>${escapeHtml(packageInfo.additionalAttributes.Vendor.attributeValues[0])}</td></tr>`;
-        }
-        infoHtml += '</tbody>';
-        infoTable.innerHTML = infoHtml;
-        container.appendChild(infoTable);
+    const infoTable = document.createElement("table");
+    infoTable.className = "metadata-table";
+    let infoHtml = "<tbody>";
+    infoHtml += `<tr><td class="main-key">Nome</td><td>${escapeHtml(
+      packageInfo.displayName
+    )}</td></tr>`;
+    infoHtml += `<tr><td class="main-key">Versão</td><td>${escapeHtml(
+      packageInfo.semanticVersion
+    )}</td></tr>`;
+
+    if (packageInfo.additionalAttributes?.shortText?.attributeValues[0]) {
+      infoHtml += `<tr><td class="main-key">Descrição</td><td>${escapeHtml(
+        packageInfo.additionalAttributes.shortText.attributeValues[0]
+      )}</td></tr>`;
     }
-
-    // --- Seção 2: Artefatos no Pacote ---
-    if (artifacts.length > 0) {
-        const artifactsHeader = document.createElement('h2');
-        artifactsHeader.textContent = 'Artefatos no Pacote';
-        container.appendChild(artifactsHeader);
-        
-        const artifactsTableHtml = buildResourcesTable({ resources: artifacts });
-        const artifactsDiv = document.createElement('div');
-        artifactsDiv.innerHTML = artifactsTableHtml;
-        const artifactsTable = artifactsDiv.querySelector('table');
-        if(artifactsTable) {
-            enableResourceTableInteraction(artifactsTable, artifacts, (resource) => {
-                console.log("Artefato selecionado:", resource.displayName);
-                alert(`Artefato selecionado: ${resource.displayName}`);
-            });
-            container.appendChild(artifactsTable);
-        }
+    if (packageInfo.additionalAttributes?.Vendor?.attributeValues[0]) {
+      infoHtml += `<tr><td class="main-key">Vendor</td><td>${escapeHtml(
+        packageInfo.additionalAttributes.Vendor.attributeValues[0]
+      )}</td></tr>`;
     }
+    infoHtml += "</tbody>";
+    infoTable.innerHTML = infoHtml;
+    container.appendChild(infoTable);
+  }
 
-    // --- Seção 3: Relações entre Artefatos ---
-    if (relations.length > 0) {
-        const relationsHeader = document.createElement('h2');
-        relationsHeader.textContent = 'Relações entre Artefatos';
-        container.appendChild(relationsHeader);
-        container.appendChild(buildRelationsTable(relations, packageData.resources));
+  // --- Seção 2: Artefatos no Pacote ---
+  if (artifacts.length > 0) {
+    const artifactsHeader = document.createElement("h2");
+    artifactsHeader.textContent = "Artefatos no Pacote";
+    container.appendChild(artifactsHeader);
+
+    const artifactsTableHtml = buildResourcesTable({ resources: artifacts });
+    const artifactsDiv = document.createElement("div");
+    artifactsDiv.innerHTML = artifactsTableHtml;
+    const artifactsTable = artifactsDiv.querySelector("table");
+    if (artifactsTable) {
+      enableResourceTableInteraction(artifactsTable, artifacts, (resource) => {
+        console.log("Artefato selecionado:", resource.displayName);
+        alert(`Artefato selecionado: ${resource.displayName}`);
+      });
+      container.appendChild(artifactsTable);
     }
+  }
 
-    // --- Seção 4: Endpoints de Integração (iFlows) ---
-    const iFlows = artifacts.filter(a => a.resourceType === 'IFlow' && allFilesContent[a.id + '_content']);
-    
-    if (iFlows.length > 0) {
-        const endpointsHeader = document.createElement('h2');
-        endpointsHeader.textContent = 'Endpoints de Integração (iFlows)';
-        container.appendChild(endpointsHeader);
+  // --- Seção 3: Relações entre Artefatos ---
+  if (relations.length > 0) {
+    const relationsHeader = document.createElement("h2");
+    relationsHeader.textContent = "Relações entre Artefatos";
+    container.appendChild(relationsHeader);
+    container.appendChild(
+      buildRelationsTable(relations, packageData.resources)
+    );
+  }
 
-        const endpointsTable = document.createElement('table');
-        endpointsTable.className = 'metadata-table endpoints-table';
-        let html = '<thead><tr><th>iFlow</th><th>Participante</th><th>Tipo (Role)</th><th>Protocolo/Adaptador</th></tr></thead><tbody>';
-        
-        // Processa cada iFlow de forma assíncrona
-        for (const iflow of iFlows) {
-            const iflowContent = allFilesContent[iflow.id + '_content'];
-            const endpoints = await extractIFlowEndpoints(iflowContent);
-            
-            if (endpoints.length > 0) {
-                endpoints.forEach((endpoint, index) => {
-                    html += `<tr>
-                        ${index === 0 ? `<td rowspan="${endpoints.length}">${escapeHtml(iflow.displayName)}</td>` : ''}
+  // --- Seção 4: Endpoints de Integração (iFlows) ---
+  const iFlows = artifacts.filter(
+    (a) => a.resourceType === "IFlow" && allFilesContent[a.id + "_content"]
+  );
+
+  if (iFlows.length > 0) {
+    const endpointsHeader = document.createElement("h2");
+    endpointsHeader.textContent = "Endpoints de Integração (iFlows)";
+    container.appendChild(endpointsHeader);
+
+    const endpointsTable = document.createElement("table");
+    endpointsTable.className = "metadata-table endpoints-table";
+    let html =
+      "<thead><tr><th>iFlow</th><th>Participante</th><th>Tipo (Role)</th><th>Protocolo/Adaptador</th></tr></thead><tbody>";
+
+    // Processa cada iFlow de forma assíncrona
+    for (const iflow of iFlows) {
+      const iflowContent = allFilesContent[iflow.id + "_content"];
+      const endpoints = await extractIFlowEndpoints(iflowContent);
+
+      if (endpoints.length > 0) {
+        endpoints.forEach((endpoint, index) => {
+          html += `<tr>
+                        ${
+                          index === 0
+                            ? `<td rowspan="${endpoints.length}">${escapeHtml(
+                                iflow.displayName
+                              )}</td>`
+                            : ""
+                        }
                         <td>${escapeHtml(endpoint.name)}</td>
                         <td>${escapeHtml(endpoint.role)}</td>
                         <td>${escapeHtml(endpoint.protocol)}</td>
                     </tr>`;
-                });
-            } else {
-                 html += `<tr><td>${escapeHtml(iflow.displayName)}</td><td colspan="3"><i>Nenhum participante encontrado ou erro de parse.</i></td></tr>`;
-            }
-        }
-        
-        html += '</tbody>';
-        endpointsTable.innerHTML = html;
-        container.appendChild(endpointsTable);
+        });
+      } else {
+        html += `<tr><td>${escapeHtml(
+          iflow.displayName
+        )}</td><td colspan="3"><i>Nenhum participante encontrado ou erro de parse.</i></td></tr>`;
+      }
     }
 
-    return container;
+    html += "</tbody>";
+    endpointsTable.innerHTML = html;
+    container.appendChild(endpointsTable);
+  }
+
+  return container;
 }
 
 /**
@@ -954,43 +979,37 @@ function buildRelationsTable(relations, resources) {
  * @returns {Promise<Array>} Uma promessa que resolve para um array de objetos de endpoint.
  */
 async function extractIFlowEndpoints(iflowZipContent) {
-  // Usa o BpmnJS e JSZip disponíveis na página
   const BpmnJS = window.BpmnJS;
   const JSZip = window.JSZip;
   if (!BpmnJS || !JSZip) {
-    console.error(
-      "Bibliotecas necessárias não encontradas. Adicione bpmn-js e jszip ao HTML."
-    );
+    console.error("Bibliotecas necessárias não encontradas (bpmn-js, jszip).");
     return [];
   }
 
   let iflowXml = "";
-
   try {
-    // O conteúdo vem compactado em formato ZIP; extraímos o primeiro arquivo XML
     const zip = await new JSZip().loadAsync(iflowZipContent);
-    let xmlEntry;
-    zip.forEach((relPath, entry) => {
-      if (!xmlEntry && !entry.dir && /\.(iflw|bpmn|xml)$/i.test(entry.name)) {
-        xmlEntry = entry;
-      }
-    });
-    if (!xmlEntry) {
-      console.error("Arquivo BPMN não encontrado no iFlow.");
+    const xmlFile = Object.values(zip.files).find(
+      (file) => !file.dir && /\.(iflw|bpmn|xml)$/i.test(file.name)
+    );
+
+    if (!xmlFile) {
+      console.error("Arquivo BPMN/XML não encontrado no iFlow.");
       return [];
     }
-    iflowXml = await xmlEntry.async("string");
-  } catch (err) {
-    // Conteúdo pode já ser uma string em XML
-    if (typeof iflowZipContent === "string") {
+    iflowXml = await xmlFile.async("string");
+  } catch (e) {
+    if (
+      typeof iflowZipContent === "string" &&
+      iflowZipContent.trim().startsWith("<")
+    ) {
       iflowXml = iflowZipContent;
     } else {
-      console.error("Erro ao descompactar iFlow:", err);
+      console.error("Erro ao descompactar ou ler o conteúdo do iFlow:", e);
       return [];
     }
   }
 
-  // Cria uma instância "headless" do viewer, sem um container visual
   const bpmnViewer = new BpmnJS();
 
   try {
@@ -998,51 +1017,86 @@ async function extractIFlowEndpoints(iflowZipContent) {
     const elementRegistry = bpmnViewer.get("elementRegistry");
     const participants = [];
 
-    // Filtra todos os elementos do tipo 'Participante'
     const participantElements = elementRegistry.filter(
-      (el) => el.type === "bpmn:Participant"
+      (el) => el.type === "bpmn:Participant" && !el.businessObject.processRef
     );
 
     participantElements.forEach((p) => {
       const endpoint = {
         name: p.businessObject.name || p.id,
-        role: "Desconhecido",
+        role: "Indefinido",
         protocol: "N/A",
       };
 
-      // Heurística para determinar o papel (Sender/Receiver)
-      // Se o participante tem uma conexão de saída (MessageFlow)
-      if (p.outgoing.length > 0) {
-        endpoint.role = "Receiver"; // Ele recebe uma mensagem do processo
+      // Lógica de Role (Função):
+      // Se um fluxo de mensagem ENTRA no participante, ele é um Receiver.
+      if (p.incoming?.length > 0) {
+        endpoint.role = "Receiver";
       }
-      // Se o participante tem uma conexão de entrada
-      if (p.incoming.length > 0) {
-        endpoint.role = "Sender"; // Ele envia uma mensagem para o processo
+      // Se um fluxo de mensagem SAI do participante, ele é um Sender.
+      if (p.outgoing?.length > 0) {
+        endpoint.role = "Sender";
       }
 
-      // Heurística para determinar o protocolo pelo tipo de adaptador
-      // A lógica exata pode variar dependendo da complexidade do seu iFlow
-      const flowTarget = p.outgoing[0]?.target || p.incoming[0]?.source;
-      if (flowTarget && flowTarget.businessObject) {
-        const bo = flowTarget.businessObject;
-        // O tipo de adaptador geralmente está em 'extensionElements'
-        if (bo.extensionElements?.values) {
-          for (const ext of bo.extensionElements.values) {
-            if (ext.adapterType) {
-              endpoint.protocol = ext.adapterType;
-              break;
+      // Pega o fluxo de mensagem associado para extrair as propriedades do adaptador
+      const messageFlow = p.incoming?.[0] || p.outgoing?.[0];
+
+      if (messageFlow?.businessObject?.extensionElements?.values) {
+        const properties = messageFlow.businessObject.extensionElements.values;
+        let messageProtocol = "";
+        let transportProtocol = "";
+        let componentType = "";
+
+        // **LÓGICA CORRIGIDA para extrair propriedades do modelo bpmn-js**
+        for (const prop of properties) {
+          if (prop.$type === "ifl:property" && prop.$children) {
+            const keyNode = prop.$children.find((c) => c.$type === "key");
+            const valueNode = prop.$children.find((c) => c.$type === "value");
+
+            if (keyNode && valueNode) {
+              const key = keyNode.$body;
+              const value = valueNode.$body;
+
+              if (key === "MessageProtocol") {
+                messageProtocol = value;
+              }
+              if (key === "TransportProtocol") {
+                transportProtocol = value;
+              }
+              if (key === "ComponentType") {
+                componentType = value;
+              }
             }
           }
         }
 
+        // Prioriza MessageProtocol, depois TransportProtocol
+        if (
+          messageProtocol &&
+          !["None", "Not Applicable"].includes(messageProtocol)
+        ) {
+          endpoint.protocol = messageProtocol;
+        } else if (
+          transportProtocol &&
+          !["None", "Not Applicable"].includes(transportProtocol)
+        ) {
+          endpoint.protocol = transportProtocol;
+        } else if (
+          componentType &&
+          !["None", "Not Applicable"].includes(componentType)
+        ) {
+          endpoint.protocol = componentType;
+        }
+
         participants.push(endpoint);
+        
       }
     });
 
     return participants;
   } catch (err) {
-    console.error("Erro ao parsear BPMN:", err);
-    return []; // Retorna array vazio em caso de erro
+    console.error("Erro ao processar o diagrama BPMN:", err);
+    return [];
   } finally {
     bpmnViewer.destroy();
   }
