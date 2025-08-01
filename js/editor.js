@@ -90,21 +90,32 @@ function detectLanguage(fileName) {
 }
 
 function setEditorContent(content, fileName) {
+  // Configurações iniciais do Monaco (permanecem as mesmas)
   const language = detectLanguage(fileName);
   languageSelect.value = language;
   monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
   monacoEditor.setValue(content);
   currentFileName = fileName;
-  isRenderedView = false;
-  
-  document.getElementById("monacoEditor").style.display = "block";
-  renderedView.style.display = "none";
 
   const ext = fileName.split(".").pop().toLowerCase();
-  if (["iflw", "project", "mf", "prop", "propdef", "mmap", "json"].includes(ext)) {
+  const hasRenderedView = ["iflw", "project", "mf", "prop", "propdef", "mmap", "json"].includes(ext);
+
+  if (hasRenderedView) {
+    // **LÓGICA INVERTIDA: RENDERIZADO É O PADRÃO**
+    isRenderedView = true;
     viewSwitchBtn.style.display = "inline-block";
+    viewSwitchBtn.textContent = t('view_code'); // Define o texto para a próxima ação
+
+    showRenderedView(content, currentFileName);
+    renderedView.style.display = "block";
+    document.getElementById("monacoEditor").style.display = "none";
   } else {
+    // Comportamento padrão para arquivos sem visão renderizada
+    isRenderedView = false;
     viewSwitchBtn.style.display = "none";
+    
+    renderedView.style.display = "none";
+    document.getElementById("monacoEditor").style.display = "block";
   }
 }
 
@@ -191,14 +202,19 @@ function prettyPrintXML(xml) {
 
 function toggleViewMode() {
   if (!monacoEditor) return;
+
   if (isRenderedView) {
+    // MUDANDO PARA A VISÃO DE CÓDIGO
     renderedView.style.display = "none";
     document.getElementById("monacoEditor").style.display = "block";
+    viewSwitchBtn.textContent = t('view_rendered'); // Atualiza o texto para a próxima ação
     isRenderedView = false;
   } else {
+    // MUDANDO PARA A VISÃO RENDERIZADA
     showRenderedView(monacoEditor.getValue(), currentFileName);
     renderedView.style.display = "block";
     document.getElementById("monacoEditor").style.display = "none";
+    viewSwitchBtn.textContent = t('view_code'); // Atualiza o texto para a próxima ação
     isRenderedView = true;
   }
 }
