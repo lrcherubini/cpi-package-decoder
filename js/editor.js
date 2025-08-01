@@ -185,7 +185,7 @@ function enterFullscreen() {
   modalContent.style.zIndex = "10001";
 
   fullscreenBtn.textContent = "🗗";
-  fullscreenBtn.title = "Sair da tela cheia";
+  fullscreenBtn.title = t("exit_fullscreen");
   isFullscreen = true;
 
   if (monacoEditor) {
@@ -205,7 +205,7 @@ function exitFullscreen() {
   modalContent.style.zIndex = "";
 
   fullscreenBtn.textContent = "⛶";
-  fullscreenBtn.title = "Tela cheia";
+  fullscreenBtn.title = t("fullscreen");
   isFullscreen = false;
 
   if (monacoEditor) {
@@ -301,17 +301,19 @@ function showRenderedView(content, fileName) {
           renderedView.appendChild(buildJsonTree(obj, "JSON"));
         }
       } catch (e) {
-        renderedView.textContent = "Erro ao processar JSON: " + e.message;
+        renderedView.textContent =
+          t("json_error").replace("{error}", e.message);
       }
     } else if (ext === "mmap") {
       renderedView.appendChild(buildMmapView(content));
     } else {
-      renderedView.textContent =
-        "Nenhuma visualização disponível para este tipo de arquivo.";
+      renderedView.textContent = t("no_view_available");
     }
   } catch (e) {
     console.error("Erro ao renderizar arquivo:", e);
-    renderedView.innerHTML = `<div class="error">Ocorreu um erro ao tentar renderizar o arquivo ${fileName}.<br>${e.message}</div>`;
+    renderedView.innerHTML = `<div class="error">${t("render_error")
+      .replace("{file}", fileName)
+      .replace("{error}", e.message)}</div>`;
   }
 }
 
@@ -324,16 +326,16 @@ function buildPropDefView(xmlContent) {
   const parameters = xmlDoc.querySelectorAll("parameter");
 
   if (parameters.length === 0)
-    return "<p>Nenhum parâmetro definido neste arquivo.</p>";
+    return `<p>${t("no_param_defined")}</p>`;
 
-  let table = `<h3>Definições de Parâmetros do Fluxo</h3>
+  let table = `<h3>${t("param_defs_title")}</h3>
                  <table class="metadata-table">
                    <thead>
                      <tr>
-                       <th>Nome do Parâmetro</th>
-                       <th>Tipo</th>
-                       <th>Obrigatório</th>
-                       <th>Descrição</th>
+                       <th>${t("param_table_name")}</th>
+                       <th>${t("param_table_type")}</th>
+                       <th>${t("param_table_required")}</th>
+                       <th>${t("param_table_description")}</th>
                      </tr>
                    </thead>
                    <tbody>`;
@@ -382,10 +384,10 @@ function buildManifestView(textContent) {
     }
   });
 
-  let table = `<h3>Metadados do Manifesto</h3>
+  let table = `<h3>${t("manifest_metadata_title")}</h3>
                  <table class="metadata-table">
                    <thead>
-                     <tr><th>Chave</th><th>Valor</th></tr>
+                     <tr><th>${t("manifest_table_key")}</th><th>${t("manifest_table_value")}</th></tr>
                    </thead>
                    <tbody>`;
 
@@ -418,17 +420,17 @@ function buildProjectView(xmlContent) {
     (n) => n.textContent
   );
 
-  let html = `<h3>Detalhes do Projeto</h3>
-                <p><strong>Nome do Projeto:</strong> ${escapeHtml(
+  let html = `<h3>${t("project_details_title")}</h3>
+                <p><strong>${t("project_name_label")}</strong> ${escapeHtml(
                   projectName
                 )}</p>`;
 
   if (comment) {
-    html += `<p><strong>Comentário:</strong> ${escapeHtml(comment)}</p>`;
+    html += `<p><strong>${t("project_comment_label")}</strong> ${escapeHtml(comment)}</p>`;
   }
 
   if (natures.length > 0) {
-    html += `<h4>Naturezas do Projeto</h4>
+    html += `<h4>${t("project_natures_title")}</h4>
                  <ul class="script-list">`;
     natures.forEach((nature) => {
       html += `<li class="script-item">${escapeHtml(nature)}</li>`;
@@ -476,13 +478,13 @@ function buildPropView(propContent, allFiles) {
     Object.assign(paramTypes, parsePropDefForTypes(allFiles[propDefFileName]));
   }
 
-  let html = `<h3>Valores dos Parâmetros Configurados</h3>`;
+  let html = `<h3>${t("param_values_title")}</h3>`;
   const lines = propContent
     .split(/\r?\n/)
     .filter((line) => !line.trim().startsWith("#") && line.includes("="));
 
   if (lines.length === 0) {
-    return html + "<p>Nenhum parâmetro configurado neste arquivo.</p>";
+    return html + `<p>${t("no_param_configured")}</p>`;
   }
 
   // 2. Itera sobre cada parâmetro no arquivo .prop
@@ -492,7 +494,7 @@ function buildPropView(propContent, allFiles) {
     const value = line.substring(separatorIndex + 1).trim();
 
     html += `<div class="result-section">`;
-    html += `<h4 class="result-title">Parâmetro: ${escapeHtml(key)}</h4>`;
+    html += `<h4 class="result-title">${t("param_label").replace("{param}", escapeHtml(key))}</h4>`;
 
     // 3. Verifica o tipo do parâmetro e decide como renderizar
     if (paramTypes[key] === "custom:schedule" && value.includes("<row>")) {
@@ -518,23 +520,23 @@ function buildPropView(propContent, allFiles) {
 
       html += `<table class="metadata-table">
                         <tbody>
-                            <tr><td><strong>Tipo de Disparo</strong></td><td>${escapeHtml(
+                            <tr><td><strong>${t("trigger_type_label")}</strong></td><td>${escapeHtml(
                               timerData.triggerType || "N/A"
                             )}</td></tr>
-                            <tr><td><strong>Data Agendada</strong></td><td>${escapeHtml(
+                            <tr><td><strong>${t("schedule_date_label")}</strong></td><td>${escapeHtml(
                               timerData.yearValue || "????"
                             )}-${escapeHtml(
         timerData.monthValue || "??"
       )}-${escapeHtml(timerData.dayValue || "??")}</td></tr>
-                            <tr><td><strong>Hora Agendada</strong></td><td>${escapeHtml(
+                            <tr><td><strong>${t("schedule_time_label")}</strong></td><td>${escapeHtml(
                               timerData.hourValue || "??"
                             )}:${escapeHtml(
         timerData.minutesValue || "??"
       )}</td></tr>
-                            <tr><td><strong>Fuso Horário</strong></td><td>${escapeHtml(
+                            <tr><td><strong>${t("timezone_label")}</strong></td><td>${escapeHtml(
                               timerData.timeZone || "N/A"
                             )}</td></tr>
-                            <tr><td><strong>Expressão Cron</strong></td><td><div class="code-block">${escapeHtml(
+                            <tr><td><strong>${t("cron_expression_label")}</strong></td><td><div class="code-block">${escapeHtml(
                               cronExpression
                             )}</div></td></tr>
                         </tbody>
@@ -839,26 +841,26 @@ async function buildContentPackageView(packageData, allFilesContent) {
   // --- Seção 1: Informações do Pacote ---
   if (packageInfo) {
     const infoHeader = document.createElement("h2");
-    infoHeader.textContent = "Informações do Pacote";
+    infoHeader.textContent = t("package_info_header");
     container.appendChild(infoHeader);
 
     const infoTable = document.createElement("table");
     infoTable.className = "metadata-table";
     let infoHtml = "<tbody>";
-    infoHtml += `<tr><td class="main-key">Nome</td><td>${escapeHtml(
+    infoHtml += `<tr><td class="main-key">${t("package_name_label")}</td><td>${escapeHtml(
       packageInfo.displayName
     )}</td></tr>`;
-    infoHtml += `<tr><td class="main-key">Versão</td><td>${escapeHtml(
+    infoHtml += `<tr><td class="main-key">${t("version_label")}</td><td>${escapeHtml(
       packageInfo.semanticVersion
     )}</td></tr>`;
 
     if (packageInfo.additionalAttributes?.shortText?.attributeValues[0]) {
-      infoHtml += `<tr><td class="main-key">Descrição</td><td>${escapeHtml(
+      infoHtml += `<tr><td class="main-key">${t("description_label")}</td><td>${escapeHtml(
         packageInfo.additionalAttributes.shortText.attributeValues[0]
       )}</td></tr>`;
     }
     if (packageInfo.additionalAttributes?.Vendor?.attributeValues[0]) {
-      infoHtml += `<tr><td class="main-key">Vendor</td><td>${escapeHtml(
+      infoHtml += `<tr><td class="main-key">${t("vendor_label")}</td><td>${escapeHtml(
         packageInfo.additionalAttributes.Vendor.attributeValues[0]
       )}</td></tr>`;
     }
@@ -870,7 +872,7 @@ async function buildContentPackageView(packageData, allFilesContent) {
   // --- Seção 2: Artefatos no Pacote ---
   if (artifacts.length > 0) {
     const artifactsHeader = document.createElement("h2");
-    artifactsHeader.textContent = "Artefatos no Pacote";
+    artifactsHeader.textContent = t("package_artifacts_header");
     container.appendChild(artifactsHeader);
 
     const artifactsTableHtml = buildResourcesTable({ resources: artifacts });
@@ -889,7 +891,7 @@ async function buildContentPackageView(packageData, allFilesContent) {
   // --- Seção 3: Relações entre Artefatos ---
   if (relations.length > 0) {
     const relationsHeader = document.createElement("h2");
-    relationsHeader.textContent = "Relações entre Artefatos";
+    relationsHeader.textContent = t("relations_header");
     container.appendChild(relationsHeader);
     container.appendChild(
       buildRelationsTable(relations, packageData.resources)
@@ -903,13 +905,13 @@ async function buildContentPackageView(packageData, allFilesContent) {
 
   if (iFlows.length > 0) {
     const endpointsHeader = document.createElement("h2");
-    endpointsHeader.textContent = "Endpoints de Integração (iFlows)";
+    endpointsHeader.textContent = t("iflow_endpoints_header");
     container.appendChild(endpointsHeader);
 
     const endpointsTable = document.createElement("table");
     endpointsTable.className = "metadata-table endpoints-table";
     let html =
-      "<thead><tr><th>iFlow</th><th>Participante</th><th>Tipo (Role)</th><th>Protocolo/Adaptador</th><th>Endereço</th></tr></thead><tbody>";
+      `<thead><tr><th>${t("endpoint_table_iflow")}</th><th>${t("endpoint_table_participant")}</th><th>${t("endpoint_table_role")}</th><th>${t("endpoint_table_protocol")}</th><th>${t("endpoint_table_address")}</th></tr></thead><tbody>`;
 
     // Processa cada iFlow de forma assíncrona
     for (const iflow of iFlows) {
@@ -935,7 +937,7 @@ async function buildContentPackageView(packageData, allFilesContent) {
       } else {
         html += `<tr><td>${escapeHtml(
           iflow.displayName
-        )}</td><td colspan="3"><i>Nenhum participante encontrado ou erro de parse.</i></td></tr>`;
+        )}</td><td colspan="3"><i>${t("no_participants")}</i></td></tr>`;
       }
     }
 
@@ -957,7 +959,7 @@ function buildRelationsTable(relations, resources) {
   const table = document.createElement("table");
   table.className = "metadata-table relations-table";
   let html =
-    "<thead><tr><th>Origem</th><th>Destino</th><th>Tipo de Relação</th></tr></thead><tbody>";
+    `<thead><tr><th>${t("relations_table_source")}</th><th>${t("relations_table_target")}</th><th>${t("relations_table_type")}</th></tr></thead><tbody>`;
 
   relations.forEach((rel) => {
     const sourceName = resourceMap.get(rel.sourceId) || rel.sourceId;
