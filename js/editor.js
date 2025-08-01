@@ -881,8 +881,11 @@ async function buildContentPackageView(packageData, allFilesContent) {
     const artifactsTable = artifactsDiv.querySelector("table");
     if (artifactsTable) {
       enableResourceTableInteraction(artifactsTable, artifacts, (resource) => {
-        console.log("Artefato selecionado:", resource.displayName);
-        alert(`Artefato selecionado: ${resource.displayName}`);
+        openResourceInMonaco(
+          resource.id,
+          resource.displayName || resource.name,
+          resource.resourceType
+        );
       });
       container.appendChild(artifactsTable);
     }
