@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>BPMN Viewer</title>
+    <title data-i18n="bpmn_viewer_title">BPMN Viewer</title>
     <link
       rel="stylesheet"
       href="https://unpkg.com/bpmn-js@17.0.2/dist/assets/bpmn-js.css"
@@ -31,9 +31,11 @@
     <div id="container"></div>
 
     <script src="https://unpkg.com/bpmn-js@17.0.2/dist/bpmn-navigated-viewer.development.js"></script>
+    <script src="js/i18n.js"></script>
 
-    <script>
-      const container = document.getElementById("container");
+      <script>
+        applyTranslations();
+        const container = document.getElementById("container");
       const viewer = new BpmnJS({ container: container });
 
       // 1. Adiciona um "ouvinte" para a mensagem que virá da janela principal
@@ -50,7 +52,7 @@
             viewer.get("canvas").zoom("fit-viewport");
           } catch (err) {
             console.error("Erro ao renderizar o diagrama BPMN:", err);
-            container.innerHTML = `<div class="error-message"><strong>Erro ao renderizar o diagrama:</strong><br>${err.message}</div>`;
+            container.innerHTML = `<div class="error-message"><strong>${t('bpmn_render_error')}</strong><br>${err.message}</div>`;
           }
         }
       });

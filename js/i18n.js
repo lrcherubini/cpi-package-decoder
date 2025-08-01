@@ -32,7 +32,9 @@ const translations = {
     switch_view: "Alternar visualização",
     view_rendered: "Ver Renderizado", 
     view_code: "Ver Código",       
-    refresh: "Atualizar"
+    refresh: "Atualizar",
+    bpmn_viewer_title: "Visualizador BPMN",
+    bpmn_render_error: "Erro ao renderizar o diagrama:"
   },
   "en-US": {
     title: "SAP CPI Package Decoder",
@@ -67,7 +69,9 @@ const translations = {
     switch_view: "Switch View",
     view_rendered: "View Rendered", 
     view_code: "View Code",       
-    refresh: "Refresh"
+    refresh: "Refresh",
+    bpmn_viewer_title: "BPMN Viewer",
+    bpmn_render_error: "Error rendering diagram:"
   },
   "es-ES": {
     title: "SAP CPI Package Decoder",
@@ -101,8 +105,10 @@ const translations = {
     resource_click_hint: "💡 Haz clic en cualquier recurso para ver su contenido en el editor. Los recursos tipo URL se abrirán en una nueva ventana",
     switch_view: "Cambiar vista",
     view_rendered: "Ver Renderizado", 
-    view_code: "Ver Código",       
-    refresh: "Actualizar"
+    view_code: "Ver Código",
+    refresh: "Actualizar",
+    bpmn_viewer_title: "Visor BPMN",
+    bpmn_render_error: "Error al renderizar el diagrama:"
   }
 };
 
@@ -119,12 +125,18 @@ function applyTranslations() {
     const text = t(key);
     el.innerHTML = text;
   });
-  document.getElementById('formatBtn').title = t('format_code');
-  document.getElementById('copyBtn').title = t('copy_content');
-  document.getElementById('viewSwitchBtn').title = t('switch_view');
-  document.getElementById('refreshBtn').title = t('refresh');
-  document.getElementById('fullscreenBtn').title = t('fullscreen');
-  document.getElementById('langSelect').value = currentLang;
+  const formatEl = document.getElementById('formatBtn');
+  if (formatEl) formatEl.title = t('format_code');
+  const copyEl = document.getElementById('copyBtn');
+  if (copyEl) copyEl.title = t('copy_content');
+  const switchEl = document.getElementById('viewSwitchBtn');
+  if (switchEl) switchEl.title = t('switch_view');
+  const refreshEl = document.getElementById('refreshBtn');
+  if (refreshEl) refreshEl.title = t('refresh');
+  const fullEl = document.getElementById('fullscreenBtn');
+  if (fullEl) fullEl.title = t('fullscreen');
+  const langSel = document.getElementById('langSelect');
+  if (langSel) langSel.value = currentLang;
 }
 
 function setLanguage(lang) {
