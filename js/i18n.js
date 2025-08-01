@@ -30,6 +30,8 @@ const translations = {
     resource_details: "Tipo: {type} | Versão: {version} | Modificado por: {user}",
     resource_click_hint: "💡 Clique em qualquer recurso para visualizar seu conteúdo no editor. Recursos do tipo URL serão abertos em nova janela",
     switch_view: "Alternar visualização",
+    view_rendered: "Ver Renderizado", 
+    view_code: "Ver Código",       
     refresh: "Atualizar"
   },
   "en-US": {
@@ -63,6 +65,8 @@ const translations = {
     resource_details: "Type: {type} | Version: {version} | Modified by: {user}",
     resource_click_hint: "💡 Click any resource to view its content in the editor. URL resources will open in a new window",
     switch_view: "Switch View",
+    view_rendered: "View Rendered", 
+    view_code: "View Code",       
     refresh: "Refresh"
   },
   "es-ES": {
@@ -96,6 +100,8 @@ const translations = {
     resource_details: "Tipo: {type} | Versión: {version} | Modificado por: {user}",
     resource_click_hint: "💡 Haz clic en cualquier recurso para ver su contenido en el editor. Los recursos tipo URL se abrirán en una nueva ventana",
     switch_view: "Cambiar vista",
+    view_rendered: "Ver Renderizado", 
+    view_code: "Ver Código",       
     refresh: "Actualizar"
   }
 };
