@@ -228,23 +228,44 @@ function showRenderedView(content, fileName) {
   const ext = fileName.split(".").pop().toLowerCase();
 
   try {
-    if (ext === "propdef") {
+    if (ext === "iflw") {
+      // 1. Cria o iframe sem dados na URL
+      const iframe = document.createElement('iframe');
+      iframe.src = "bpmn_viewer.html";
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      iframe.style.border = 'none';
+
+      // 2. Define um evento 'onload' para enviar os dados quando o iframe estiver pronto
+      iframe.onload = () => {
+        // 3. Envia o conteúdo XML para o iframe usando postMessage
+        // O '*' significa que qualquer origem pode receber, o que é seguro neste contexto de arquivos estáticos.
+        if (iframe.contentWindow) {
+            iframe.contentWindow.postMessage(content, '*');
+        }
+      };
+      
+      // Limpa a área de renderização e adiciona o novo iframe
+      renderedView.innerHTML = '';
+      renderedView.appendChild(iframe);
+
+    } else if (ext === "propdef") {
+      // ... (código existente)
       renderedView.innerHTML = buildPropDefView(content);
     } else if (ext === "mf") {
+      // ... (código existente)
       renderedView.innerHTML = buildManifestView(content);
     } else if (ext === "project") {
+      // ... (código existente)
       renderedView.innerHTML = buildProjectView(content);
     } else if (ext === "prop") {
-      // ALTERAÇÃO AQUI: Passa o objeto 'currentFiles' para a função,
-      // permitindo a validação cruzada com o arquivo .propdef.
-      renderedView.innerHTML = buildPropView(content, currentFiles); // Linha corrigida
-    } else if (ext === "iflw") {
-      const base64 = btoa(unescape(encodeURIComponent(content)));
-      const encoded = encodeURIComponent(base64);
-      renderedView.innerHTML = `<iframe src="bpmn_viewer.html?data=${encoded}"></iframe>`;
+      // ... (código existente)
+      renderedView.innerHTML = buildPropView(content, currentFiles);
     } else if (ext === "json") {
+        // ... (código existente)
         renderedView.appendChild(buildJsonTree(JSON.parse(content), "JSON"));
     } else if (ext === "mmap") {
+        // ... (código existente)
         renderedView.appendChild(buildMmapView(content));
     } else {
       renderedView.textContent = "Nenhuma visualização disponível para este tipo de arquivo.";

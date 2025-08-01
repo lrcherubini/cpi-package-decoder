@@ -1,49 +1,59 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>BPMN Viewer</title>
-<link rel="stylesheet" href="https://unpkg.com/bpmn-js@10.1.0/dist/assets/bpmn-js.css">
-<style>
-  html, body { height: 100%; margin: 0; }
-  #canvas { width: 100%; height: 100%; }
-</style>
-</head>
-<body>
-<div id="canvas"></div>
-<script src="https://unpkg.com/bpmn-js@10.1.0/dist/bpmn-viewer.development.js"></script>
-<script>
-(function(){
-  const params = new URLSearchParams(window.location.search);
-  const dataParam = params.get('data');
-  const lang = params.get('lang') || 'pt-BR';
-  const messages = {
-    'pt-BR': {
-      noData: 'Nenhum dado BPMN fornecido.',
-      error: 'Erro ao carregar diagrama: '
-    },
-    'en-US': {
-      noData: 'No BPMN data provided.',
-      error: 'Error loading diagram: '
-    },
-    'es-ES': {
-      noData: 'No se proporcionaron datos BPMN.',
-      error: 'Error al cargar el diagrama: '
-    }
-  };
-  const msg = messages[lang] || messages['en-US'];
-  if (!dataParam) {
-      document.body.innerHTML = '<p>' + msg.noData + '</p>';
-      return;
-    }
-    const xml = atob(decodeURIComponent(dataParam));
-  const viewer = new BpmnJS({ container: '#canvas' });
-  viewer.importXML(xml).then(function(){
-    viewer.get('canvas').zoom('fit-viewport');
-  }).catch(function(err){
-    document.body.innerHTML = '<pre>' + msg.error + err + '</pre>';
-  });
-})();
-</script>
-</body>
+<html>
+  <head>
+    <title>BPMN Viewer</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/bpmn-js@17.0.2/dist/assets/bpmn-js.css"
+    />
+    <style>
+      /* Estilos para garantir que o diagrama ocupe todo o espaço */
+      html,
+      body,
+      #container {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: #fafafa;
+      }
+      .error-message {
+        font-family: sans-serif;
+        padding: 20px;
+        color: #b94a48;
+        background-color: #f2dede;
+        border: 1px solid #ebccd1;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container"></div>
+
+    <script src="https://unpkg.com/bpmn-js@17.0.2/dist/bpmn-navigated-viewer.development.js"></script>
+
+    <script>
+      const container = document.getElementById("container");
+      const viewer = new BpmnJS({ container: container });
+
+      // 1. Adiciona um "ouvinte" para a mensagem que virá da janela principal
+      window.addEventListener("message", async (event) => {
+        // Opcional, mas boa prática: verificar a origem da mensagem
+        // if (event.origin !== 'https://seu-usuario.github.io') return;
+
+        const xml = event.data; // Este é o conteúdo XML do IFLW
+
+        if (xml && typeof xml === "string") {
+          try {
+            // 2. Tenta importar e renderizar o XML recebido
+            await viewer.importXML(xml);
+            viewer.get("canvas").zoom("fit-viewport");
+          } catch (err) {
+            console.error("Erro ao renderizar o diagrama BPMN:", err);
+            container.innerHTML = `<div class="error-message"><strong>Erro ao renderizar o diagrama:</strong><br>${err.message}</div>`;
+          }
+        }
+      });
+    </script>
+  </body>
 </html>
