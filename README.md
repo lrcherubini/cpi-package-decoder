@@ -147,14 +147,6 @@ Contribuições são bem-vindas! Para contribuir:
 4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
-## 📝 Changelog
-
-### v1.0.0
-- Funcionalidade inicial de decodificação
-- Suporte para metadados e recursos
-- Interface drag & drop
-- Visualização de ScriptCollections
-
 ## 📄 Licença
 
 Este projeto é de código aberto. Consulte o arquivo LICENSE para detalhes.
