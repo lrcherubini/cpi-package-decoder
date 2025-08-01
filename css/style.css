@@ -512,3 +512,37 @@ input[type="file"] {
   stroke: #007bff;
   stroke-width: 2.5;
 }
+
+/* Container principal da visão de pacote */
+.package-view-container {
+    padding: 10px;
+}
+
+/* Estilo para os títulos das seções (h2) */
+.package-view-container h2 {
+    font-size: 18px;
+    color: #333;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 8px;
+    margin-top: 25px;
+    margin-bottom: 15px;
+}
+.package-view-container h2:first-of-type {
+    margin-top: 0;
+}
+
+/* Pequeno ajuste na tabela de relações para melhor espaçamento */
+.relations-table td {
+    font-style: italic;
+    color: #444;
+}
+
+/* Tabela para a nova seção de Endpoints */
+.endpoints-table td {
+    vertical-align: middle;
+}
+.endpoints-table td[rowspan] {
+    font-weight: bold;
+    color: #333;
+    background-color: #f9f9f9;
+}
