@@ -909,7 +909,7 @@ async function buildContentPackageView(packageData, allFilesContent) {
     const endpointsTable = document.createElement("table");
     endpointsTable.className = "metadata-table endpoints-table";
     let html =
-      "<thead><tr><th>iFlow</th><th>Participante</th><th>Tipo (Role)</th><th>Protocolo/Adaptador</th></tr></thead><tbody>";
+      "<thead><tr><th>iFlow</th><th>Participante</th><th>Tipo (Role)</th><th>Protocolo/Adaptador</th><th>Endereço</th></tr></thead><tbody>";
 
     // Processa cada iFlow de forma assíncrona
     for (const iflow of iFlows) {
@@ -929,6 +929,7 @@ async function buildContentPackageView(packageData, allFilesContent) {
                         <td>${escapeHtml(endpoint.name)}</td>
                         <td>${escapeHtml(endpoint.role)}</td>
                         <td>${escapeHtml(endpoint.protocol)}</td>
+                        <td>${escapeHtml(endpoint.address)}</td>
                     </tr>`;
         });
       } else {
@@ -1026,6 +1027,7 @@ async function extractIFlowEndpoints(iflowZipContent) {
         name: p.businessObject.name || p.id,
         role: "Indefinido",
         protocol: "N/A",
+        address: "N/A",
       };
 
       // Lógica de Role (Função):
@@ -1046,6 +1048,7 @@ async function extractIFlowEndpoints(iflowZipContent) {
         let messageProtocol = "";
         let transportProtocol = "";
         let componentType = "";
+        let addressParticipant = "";
 
         // **LÓGICA CORRIGIDA para extrair propriedades do modelo bpmn-js**
         for (const prop of properties) {
@@ -1066,6 +1069,9 @@ async function extractIFlowEndpoints(iflowZipContent) {
               if (key === "ComponentType") {
                 componentType = value;
               }
+              if (key.toLowerCase() === "address") {
+                addressParticipant = value;
+              }
             }
           }
         }
@@ -1076,20 +1082,31 @@ async function extractIFlowEndpoints(iflowZipContent) {
           !["None", "Not Applicable"].includes(messageProtocol)
         ) {
           endpoint.protocol = messageProtocol;
+
         } else if (
           transportProtocol &&
           !["None", "Not Applicable"].includes(transportProtocol)
         ) {
           endpoint.protocol = transportProtocol;
+
         } else if (
           componentType &&
           !["None", "Not Applicable"].includes(componentType)
         ) {
           endpoint.protocol = componentType;
+
+        }
+
+        if (
+          addressParticipant &&
+          !["None", "Not Applicable"].includes(addressParticipant)
+        ) {
+          endpoint.address = addressParticipant;
+          
         }
 
         participants.push(endpoint);
-        
+
       }
     });
 
