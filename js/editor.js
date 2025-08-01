@@ -1034,16 +1034,9 @@ async function extractIFlowEndpoints(iflowZipContent) {
             }
           }
         }
-        // Fallback para o tipo de evento/tarefa se não encontrar o adaptador
-        if (endpoint.protocol === "N/A") {
-          if (bo.$type.includes("StartEvent")) endpoint.protocol = "Start";
-          if (bo.$type.includes("EndEvent")) endpoint.protocol = "End";
-          if (bo.$type.includes("ServiceTask"))
-            endpoint.protocol = "Service Task";
-        }
-      }
 
-      participants.push(endpoint);
+        participants.push(endpoint);
+      }
     });
 
     return participants;
