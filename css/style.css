@@ -342,11 +342,96 @@ input[type="file"] {
   }
 }
 
-/* BPMN Viewer frame */
-#bpmnFrame {
+.rendered-container {
   flex: 1;
+  overflow: auto;
+  padding: 10px;
+}
+
+/* BPMN Viewer frame inside rendered container */
+#renderedView iframe {
   width: 100%;
+  height: 100%;
   border: none;
+}
+
+.tree-view ul {
+  list-style: none;
+  padding-left: 20px;
+}
+
+.tree-view li {
+  margin: 2px 0;
+}
+
+.table-view {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-view td, .table-view th {
+  border: 1px solid #e2e8f0;
+  padding: 4px 8px;
+}
+
+.table-view tr:nth-child(even) {
+  background: #f8f9fa;
+}
+.metadata-table,
+.resources-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.metadata-table th,
+.metadata-table td,
+.resources-table th,
+.resources-table td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
+
+.metadata-table tr:nth-child(even),
+.resources-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.resources-table tr:hover {
+  background-color: #e9e9e9;
+  cursor: pointer;
+}
+
+.selected-row {
+  background-color: #d0d0d0;
+}
+
+.tree-panel {
+  display: flex;
+  gap: 20px;
+}
+
+.tree-panel > div {
+  flex: 1;
+}
+
+.tree-panel ul {
+  list-style-type: none;
+  padding-left: 20px;
+}
+
+.tree-panel li {
+  padding: 4px;
+  cursor: pointer;
+}
+
+.tree-node-icon {
+  margin-right: 5px;
+}
+
+.highlight {
+  background-color: #ffffdd;
+  font-weight: bold;
 }
 .lang-select {
   margin-top: 10px;
@@ -355,3 +440,75 @@ input[type="file"] {
   border: none;
 }
 
+/* Container principal precisa de position: relative para o overlay funcionar */
+/* Container principal precisa de position: relative para o overlay funcionar */
+.mmap-container {
+  position: relative;
+  display: flex;
+  gap: 20px; /* Aumenta um pouco o espaço entre os painéis */
+  width: 100%;
+  
+  /* CHAVE PARA A CENTRALIZAÇÃO: Centraliza os painéis quando eles não ocupam 100% da largura */
+  justify-content: center;
+}
+
+/* Overlay SVG para as linhas */
+.mmap-svg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Painéis da árvore com largura auto-ajustável e máxima */
+.tree-panel {
+  /* flex: 1; << REMOVIDO para impedir a expansão automática e forçada */
+  
+  /* CHAVE PARA O AUTO-AJUSTE: */
+  flex-grow: 1;      /* Permite que o painel cresça se houver espaço livre... */
+  flex-shrink: 1;    /* Permite que o painel encolha se não houver espaço */
+  max-width: 45%;    /* ...mas NUNCA mais largo que 45% do container. */
+  min-width: 300px;  /* Garante que o painel não fique muito estreito. */
+
+  border: 1px solid #ccc;
+  padding: 10px;
+  overflow: auto;
+  max-height: 75vh;
+  z-index: 0;
+}
+
+/* O restante do seu CSS para .tree-panel ul, li, .highlight, etc. continua o mesmo */
+
+.tree-panel ul { list-style-type: none; padding-left: 15px; }
+.tree-panel li { padding: 2px 0; cursor: pointer; }
+.tree-panel li > span:hover { background-color: #f0f0f0; }
+
+.tree-panel li.highlight > span {
+  background-color: #cce5ff;
+  border: 1px solid #99caff;
+  border-radius: 3px;
+  font-weight: bold;
+}
+
+.tree-node-icon {
+  cursor: pointer;
+  margin-right: 5px;
+  user-select: none;
+  display: inline-block;
+  width: 12px;
+}
+
+.mapping-line {
+  stroke: #b0b0b0;
+  stroke-width: 1.5;
+  fill: none;
+  transition: all 0.2s ease;
+}
+
+.mapping-line.highlight {
+  stroke: #007bff;
+  stroke-width: 2.5;
+}
