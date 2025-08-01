@@ -76,10 +76,10 @@ function openResourceInMonaco(resourceId, resourceName, resourceType) {
 
   if (!monacoEditor) {
     require(["vs/editor/editor.main"], function () {
-      initializeMonacoEditor(content, fileName);
+      initializeMonacoEditor(content, fileName, fileContents);
     });
   } else {
-    loadContentIntoMonaco(content, fileName);
+    loadContentIntoMonaco(content, fileName, fileContents);
   }
 }
 
