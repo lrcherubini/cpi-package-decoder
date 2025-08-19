@@ -9,6 +9,8 @@ const translations = {
     select_zip: "Selecionar Arquivos ZIP",
     supports_zip: "Suporta: Pacotes .zip do SAP CPI",
     download_decoded: "⬇️ Baixar Recursos Decodificados",
+    build_doc: "📘 Gerar Documentação",
+    no_packages_doc: "Nenhum pacote carregado para gerar a documentação.",
     project_info: "Este projeto está disponível no <a href=\"https://github.com/lrcherubini/cpi-package-decoder\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a>. Colaborações são bem-vindas!",
     modal_title: "Conteúdo do Arquivo",
     format_code: "Formatar código",
@@ -86,6 +88,8 @@ const translations = {
     select_zip: "Select ZIP Files",
     supports_zip: "Supports: SAP CPI package .zip files",
     download_decoded: "⬇️ Download Decoded Resources",
+    build_doc: "📘 Build Documentation",
+    no_packages_doc: "No packages loaded to generate documentation.",
     project_info: "This project is available on <a href=\"https://github.com/lrcherubini/cpi-package-decoder\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a>. Contributions are welcome!",
     modal_title: "File Content",
     format_code: "Format code",
@@ -163,6 +167,8 @@ const translations = {
     select_zip: "Seleccionar Archivos ZIP",
     supports_zip: "Soporta: paquetes .zip de SAP CPI",
     download_decoded: "⬇️ Descargar Recursos Decodificados",
+    build_doc: "📘 Generar Documentación",
+    no_packages_doc: "No hay paquetes cargados para generar la documentación.",
     project_info: "Este proyecto está disponible en <a href=\"https://github.com/lrcherubini/cpi-package-decoder\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a>. ¡Las contribuciones son bienvenidas!",
     modal_title: "Contenido del Archivo",
     format_code: "Formatear código",
@@ -250,6 +256,7 @@ function applyTranslations() {
   document.getElementById('viewSwitchBtn').title = t('switch_view');
   document.getElementById('refreshBtn').title = t('refresh');
   document.getElementById('fullscreenBtn').title = t('fullscreen');
+  document.getElementById('docBtn').title = t('build_doc');
   document.getElementById('langSelect').value = currentLang;
 }
 
