@@ -44,15 +44,18 @@ async function buildDocumentation() {
             const rawContent = pkg.fileContents[contentFileName];
             if (!rawContent) continue;
 
-            const contentStr = await extractContentAsString(rawContent);
-            const rendered = await generateRenderedViewHTML(
-              contentStr,
-              name,
-              pkg.fileContents
-            );
-            if (rendered) {
-              md += `#### ${name}\n\n`;
-              md += rendered + "\n\n";
+            const files = await extractContentAsString(rawContent);
+            for (const { target, content } of files) {
+              const rendered = await generateRenderedViewHTML(
+                content,
+                target,
+                pkg.fileContents
+              );
+              if (rendered) {
+                const heading = files.length > 1 ? `${name} - ${target}` : name;
+                md += `#### ${heading}\n\n`;
+                md += rendered + "\n\n";
+              }
             }
           }
         }
@@ -73,25 +76,30 @@ async function buildDocumentation() {
 }
 
 async function extractContentAsString(content) {
+  const results = [];
   if (typeof content === "string") {
-    return content;
+    results.push({ target: "", content });
+    return results;
   }
   try {
     const zip = await JSZip.loadAsync(content);
     const candidates = Object.keys(zip.files).filter((f) => !zip.files[f].dir);
-    const target =
-      candidates.filter((f) => /\.(iflw|bpmn|project|mmap|prop|propdef|mf)$/i.test(f));
-    if (target) {
-      return await zip.file(target).async("string");
+    const targets = candidates.filter((f) =>
+      /\.(iflw|bpmn|project|mmap|prop|propdef|mf)$/i.test(f)
+    );
+    for (const target of targets) {
+      const str = await zip.file(target).async("string");
+      results.push({ target, content: str });
     }
   } catch (e) {
     try {
-      return new TextDecoder().decode(content);
+      const decoded = new TextDecoder().decode(content);
+      results.push({ target: "", content: decoded });
     } catch (err) {
       console.error("Unable to decode content", err);
     }
   }
-  return "";
+  return results;
 }
 
 async function renderBpmnToSvg(xml) {
@@ -102,7 +110,7 @@ async function renderBpmnToSvg(xml) {
 }
 
 async function generateRenderedViewHTML(content, fileName, allFiles) {
-  const ext = fileName.split(".").pop().toLowerCase();
+  const ext = (fileName || "").split(".").pop().toLowerCase();
   try {
     if (ext === "iflw" || ext === "bpmn") {
       const svg = await renderBpmnToSvg(content);
