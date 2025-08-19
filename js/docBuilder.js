@@ -4,115 +4,47 @@ async function buildDocumentation() {
     return;
   }
 
-  // Início do documento HTML com estilo profissional
-  let html = `
-    <style>
-      body { 
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-        max-width: 1200px; 
-        margin: 0 auto; 
-        padding: 20px; 
-        line-height: 1.6;
-        color: #333;
-      }
-      h1 { 
-        color: #2c5282; 
-        border-bottom: 3px solid #2c5282; 
-        padding-bottom: 10px; 
-        margin-bottom: 30px;
-      }
-      h2 { 
-        color: #2d3748; 
-        background: #e6f3ff; 
-        padding: 15px; 
-        border-left: 5px solid #0066cc; 
-        margin: 30px 0 20px 0;
-      }
-      h3 { 
-        color: #4a5568; 
-        margin: 25px 0 15px 0;
-      }
-      h4 { 
-        color: #2d3748; 
-        margin: 20px 0 10px 0;
-        padding-left: 10px;
-        border-left: 3px solid #cbd5e0;
-      }
-      .package-summary { 
-        background: #f7fafc; 
-        padding: 20px; 
-        border-radius: 8px; 
-        margin: 20px 0;
-        border: 1px solid #e2e8f0;
-      }
-      .artifact-overview { 
-        background: #fff; 
-        padding: 15px; 
-        margin: 15px 0; 
-        border-radius: 6px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        page-break-inside: avoid;
-      }
-      .artifact-type { 
-        display: inline-block; 
-        background: #3182ce; 
-        color: white; 
-        padding: 4px 12px; 
-        border-radius: 15px; 
-        font-size: 0.85em; 
-        font-weight: bold; 
-        margin: 5px 5px 5px 0;
-      }
-      .guideline-report-section {
-        background: #f0f8ff;
-        padding: 15px;
-        border-left: 4px solid #4682b4;
-        margin: 15px 0;
-      }
-      .guideline-item { padding: 10px; border-radius: 4px; margin: 8px 0; }
-      .guideline-item.pass { background-color: #e6fffa; border-left: 4px solid #38b2ac; }
-      .guideline-item.warn { background-color: #fffbf0; border-left: 4px solid #ed8936; }
-      .guideline-item.fail { background-color: #fff5f5; border-left: 4px solid #e53e3e; }
-      .bpmn-diagram-container {
-        margin-top: 20px;
-        border: 1px solid #ddd;
-        padding: 10px;
-        text-align: center;
-      }
-      .bpmn-diagram-container img {
-        max-width: 100%;
-        height: auto;
-      }
-      table { 
-        width: 100%; 
-        border-collapse: collapse; 
-        margin: 15px 0;
-        background: white;
-      }
-      th, td { 
-        padding: 12px; 
-        text-align: left; 
-        border: 1px solid #e2e8f0;
-      }
-      th { 
-        background: #f7fafc; 
-        font-weight: 600; 
-        color: #2d3748;
-      }
-    </style>
-    
+  const docContainer = document.createElement('div');
+
+  const style = `
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; line-height: 1.6; color: #333; }
+    h1 { color: #2c5282; border-bottom: 3px solid #2c5282; padding-bottom: 10px; margin-bottom: 30px; }
+    h2 { color: #2d3748; background: #e6f3ff; padding: 15px; border-left: 5px solid #0066cc; margin: 30px 0 20px 0; }
+    h3 { color: #4a5568; margin: 25px 0 15px 0; }
+    h4 { color: #2d3748; margin: 20px 0 10px 0; padding-left: 10px; border-left: 3px solid #cbd5e0; }
+    .package-summary { background: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0; }
+    .artifact-overview { background: #fff; padding: 15px; margin: 15px 0; border-radius: 6px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); page-break-inside: avoid; }
+    .artifact-type { display: inline-block; background: #3182ce; color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.85em; font-weight: bold; margin: 5px 5px 5px 0; }
+    .guideline-report-section { background: #f0f8ff; padding: 15px; border-left: 4px solid #4682b4; margin: 15px 0; }
+    .guideline-item { padding: 10px; border-radius: 4px; margin: 8px 0; }
+    .guideline-item.pass { background-color: #e6fffa; border-left: 4px solid #38b2ac; }
+    .guideline-item.warn { background-color: #fffbf0; border-left: 4px solid #ed8936; }
+    .guideline-item.fail { background-color: #fff5f5; border-left: 4px solid #e53e3e; }
+    .bpmn-diagram-container { margin-top: 20px; border: 1px solid #ddd; padding: 10px; text-align: center; }
+    .bpmn-diagram-container img { max-width: 100%; height: auto; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; background: white; }
+    th, td { padding: 12px; text-align: left; border: 1px solid #e2e8f0; }
+    th { background: #f7fafc; font-weight: 600; color: #2d3748; }
+  `;
+  
+  const headerHtml = `
     <h1>📋 Documentação de Pacotes SAP Cloud Integration</h1>
     <p><strong>Gerado em:</strong> ${new Date().toLocaleString('pt-BR')}</p>
   `;
 
+  docContainer.innerHTML = headerHtml;
+
   for (const [idx, pkg] of packagesData.entries()) {
     const pkgName = pkg.originalZipName || `Pacote ${idx + 1}`;
-    html += `<h2>📦 ${escapeHtml(pkgName)}</h2>`;
-    html += await buildArtifactsAnalysis(pkg);
+    const pkgHeader = document.createElement('h2');
+    pkgHeader.textContent = `📦 ${escapeHtml(pkgName)}`;
+    docContainer.appendChild(pkgHeader);
+    
+    const analysisContainer = await buildArtifactsAnalysis(pkg);
+    docContainer.appendChild(analysisContainer);
   }
 
-  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${html}</body></html>`;
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${style}</style></head><body>${docContainer.innerHTML}</body></html>`;
   const blob = htmlDocx.asBlob(fullHtml);
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -122,453 +54,298 @@ async function buildDocumentation() {
   document.body.removeChild(a);
 }
 
-async function buildPackageSummary(pkg, pkgName) {
-  let html = `<div class="package-summary">`;
-  
-  // Analisa o conteúdo do pacote para criar um resumo executivo
-  const artifactCount = await getArtifactCount(pkg);
-  const integrationFlowCount = artifactCount.iflows || 0;
-  const scriptCount = artifactCount.scripts || 0;
-  const configCount = artifactCount.configs || 0;
-  
-  html += `
-    <h3>📊 Resumo Executivo</h3>
-    <p><strong>Nome do Pacote:</strong> ${escapeHtml(pkgName)}</p>
-    <p><strong>Finalidade:</strong> Este pacote contém ${integrationFlowCount} fluxo(s) de integração, 
-    ${scriptCount} script(s) customizado(s) e ${configCount} arquivo(s) de configuração.</p>
-    
-    <table>
-      <tr><th>Tipo de Componente</th><th>Quantidade</th><th>Descrição</th></tr>
-      <tr>
-        <td><strong>Integration Flows (iFlows)</strong></td>
-        <td>${integrationFlowCount}</td>
-        <td>Fluxos principais que definem como os dados são processados e roteados</td>
-      </tr>
-      <tr>
-        <td><strong>Scripts Personalizados</strong></td>
-        <td>${scriptCount}</td>
-        <td>Códigos customizados para transformações e lógicas específicas</td>
-      </tr>
-      <tr>
-        <td><strong>Configurações</strong></td>
-        <td>${configCount}</td>
-        <td>Parâmetros, mapeamentos e definições técnicas</td>
-      </tr>
-    </table>
-  </div>`;
-  
-  return html;
-}
-
-function buildMetadataSection(pkg) {
-  let html = '';
-  const metadataContent = pkg.fileContents["contentmetadata.md"];
-  
-  if (metadataContent) {
-    try {
-      const decoded = atob(metadataContent.trim());
-      html += `
-        <h3>📝 Informações Técnicas do Pacote</h3>
-        <div class="technical-info">
-          <strong>Detalhes técnicos extraídos do pacote:</strong>
-          <div class="code-snippet">${escapeHtml(decoded)}</div>
-        </div>
-      `;
-    } catch (e) {
-      console.error("Error decoding content metadata", e);
-    }
-  }
-  
-  return html;
-}
-
 async function buildArtifactsAnalysis(pkg) {
-  let html = `<h3>🔧 Análise Detalhada dos Artefatos</h3>`;
-  
-  if (!pkg.resourcesCntDecoded) {
-    return html + `<p><em>Não foi possível analisar os artefatos deste pacote.</em></p>`;
-  }
+    const container = document.createElement('div');
+    const title = document.createElement('h3');
+    title.textContent = '🔧 Análise Detalhada dos Artefatos';
+    container.appendChild(title);
 
-  try {
-    const pkgInfo = JSON.parse(pkg.resourcesCntDecoded);
-    const resources = pkgInfo.resources || [];
-    
-    if (resources.length === 0) {
-      return html + `<p><em>Nenhum artefato encontrado neste pacote.</em></p>`;
+    if (!pkg.resourcesCntDecoded) {
+        container.innerHTML += `<p><em>Não foi possível analisar os artefatos deste pacote.</em></p>`;
+        return container;
     }
 
-    // Agrupa artefatos por tipo para melhor organização
-    const artifactsByType = groupArtifactsByType(resources);
-    
-    // Processa cada tipo de artefato
-    for (const [type, artifacts] of Object.entries(artifactsByType)) {
-      html += await buildArtifactTypeSection(type, artifacts, pkg);
+    try {
+        const pkgInfo = JSON.parse(pkg.resourcesCntDecoded);
+        const resources = pkgInfo.resources || [];
+
+        if (resources.length === 0) {
+            container.innerHTML += `<p><em>Nenhum artefato encontrado neste pacote.</em></p>`;
+            return container;
+        }
+
+        const artifactsByType = groupArtifactsByType(resources);
+
+        for (const [type, artifacts] of Object.entries(artifactsByType)) {
+            const section = await buildArtifactTypeSection(type, artifacts, pkg);
+            container.appendChild(section);
+        }
+
+    } catch (err) {
+        console.error("Error generating artifacts analysis", err);
+        container.innerHTML += `<p class="error">❌ Erro ao analisar os artefatos: ${err.message}</p>`;
     }
-    
-  } catch (err) {
-    console.error("Error generating artifacts analysis", err);
-    html += `<p class="error">❌ Erro ao analisar os artefatos: ${err.message}</p>`;
-  }
-  
-  return html;
+
+    return container;
 }
 
 function groupArtifactsByType(resources) {
-  const groups = {
-    'IFlow': [],
-    'ScriptCollection': [],
-    'MessageMapping': [],
-    'ContentPackage': [],
-    'Other': []
-  };
-  
+  const groups = {};
   resources.forEach(resource => {
     const type = resource.resourceType || 'Other';
-    if (groups[type]) {
-      groups[type].push(resource);
-    } else {
-      groups['Other'].push(resource);
+    if (!groups[type]) {
+        groups[type] = [];
     }
+    groups[type].push(resource);
   });
-  
-  // Remove grupos vazios
-  Object.keys(groups).forEach(key => {
-    if (groups[key].length === 0) {
-      delete groups[key];
-    }
-  });
-  
   return groups;
 }
 
 async function buildArtifactTypeSection(type, artifacts, pkg) {
-  let html = `<h4>${getArtifactTypeIcon(type)} ${getArtifactTypeTitle(type)} (${artifacts.length})</h4>`;
-  html += `<p>${getArtifactTypeDescription(type)}</p>`;
-  
-  for (const artifact of artifacts) {
-    html += await buildArtifactDetails(artifact, pkg, type);
-  }
-  
-  return html;
+    const section = document.createElement('div');
+    section.innerHTML = `
+        <h4>${getArtifactTypeIcon(type)} ${getArtifactTypeTitle(type)} (${artifacts.length})</h4>
+        <p>${getArtifactTypeDescription(type)}</p>
+    `;
+    
+    for (const artifact of artifacts) {
+        const details = await buildArtifactDetails(artifact, pkg, type);
+        section.appendChild(details);
+    }
+    
+    return section;
 }
 
 function getArtifactTypeIcon(type) {
-  const icons = {
-    'IFlow': '🔄',
-    'ScriptCollection': '📜',
-    'MessageMapping': '🗺️',
-    'ContentPackage': '📦',
-    'Other': '📄'
-  };
+  const icons = { 'IFlow': '🔄', 'ScriptCollection': '📜', 'MessageMapping': '🗺️', 'ContentPackage': '📦', 'Other': '📄' };
   return icons[type] || '📄';
 }
 
 function getArtifactTypeTitle(type) {
-  const titles = {
-    'IFlow': 'Fluxos de Integração',
-    'ScriptCollection': 'Coleções de Scripts',
-    'MessageMapping': 'Mapeamentos de Mensagem',
-    'ContentPackage': 'Informações do Pacote',
-    'Other': 'Outros Artefatos'
-  };
+  const titles = { 'IFlow': 'Fluxos de Integração', 'ScriptCollection': 'Coleções de Scripts', 'MessageMapping': 'Mapeamentos de Mensagem', 'ContentPackage': 'Informações do Pacote', 'Other': 'Outros Artefatos' };
   return titles[type] || type;
 }
 
 function getArtifactTypeDescription(type) {
-  const descriptions = {
-    'IFlow': 'Estes são os fluxos principais que definem como os dados são recebidos, processados e enviados para os sistemas de destino. Cada fluxo representa um processo de integração completo.',
-    'ScriptCollection': 'Conjuntos de scripts personalizados (códigos) que implementam lógicas específicas de negócio, transformações de dados ou validações customizadas.',
-    'MessageMapping': 'Configurações que definem como converter dados de um formato para outro, essencial para compatibilidade entre diferentes sistemas.',
-    'ContentPackage': 'Metadados e informações gerais sobre todo o pacote de integração.',
-    'Other': 'Outros componentes e configurações auxiliares do pacote de integração.'
-  };
-  return descriptions[type] || 'Artefatos diversos do pacote de integração.';
+    const descriptions = {
+        'IFlow': 'Estes são os fluxos principais que definem como os dados são recebidos, processados e enviados para os sistemas de destino. Cada fluxo representa um processo de integração completo.',
+        'ScriptCollection': 'Conjuntos de scripts personalizados (códigos) que implementam lógicas específicas de negócio, transformações de dados ou validações customizadas.',
+        'MessageMapping': 'Configurações que definem como converter dados de um formato para outro, essencial para compatibilidade entre diferentes sistemas.',
+        'ContentPackage': 'Metadados e informações gerais sobre todo o pacote de integração.',
+        'Other': 'Outros componentes e configurações auxiliares do pacote de integração.'
+    };
+    return descriptions[type] || 'Artefatos diversos do pacote de integração.';
 }
 
 async function buildArtifactDetails(artifact, pkg, type) {
-  const name = artifact.displayName || artifact.name || artifact.id;
-  let html = `<div class="artifact-overview">`;
-  html += `<h5>📋 ${escapeHtml(name)}</h5>`;
+    const name = artifact.displayName || artifact.name || artifact.id;
+    const container = document.createElement('div');
+    container.className = 'artifact-overview';
   
-  // Informações básicas do artefato
-  html += `
-    <div style="margin-bottom: 15px;">
-      <span class="artifact-type">${escapeHtml(artifact.resourceType || 'N/A')}</span>
-      ${artifact.semanticVersion ? `<span class="artifact-type" style="background: #805ad5;">Versão ${escapeHtml(artifact.semanticVersion)}</span>` : ''}
-      ${artifact.modifiedBy ? `<span class="artifact-type" style="background: #38b2ac;">Por ${escapeHtml(artifact.modifiedBy)}</span>` : ''}
-    </div>
-  `;
-
-  // Adiciona descrição se disponível
-  if (artifact.additionalAttributes?.shortText?.attributeValues?.[0]) {
-    html += `<p><strong>Descrição:</strong> ${escapeHtml(artifact.additionalAttributes.shortText.attributeValues[0])}</p>`;
-  }
+    let detailsHtml = `<h5>📋 ${escapeHtml(name)}</h5>
+      <div style="margin-bottom: 15px;">
+        <span class="artifact-type">${escapeHtml(artifact.resourceType || 'N/A')}</span>
+        ${artifact.semanticVersion ? `<span class="artifact-type" style="background: #805ad5;">Versão ${escapeHtml(artifact.semanticVersion)}</span>` : ''}
+        ${artifact.modifiedBy ? `<span class="artifact-type" style="background: #38b2ac;">Por ${escapeHtml(artifact.modifiedBy)}</span>` : ''}
+      </div>`;
   
-  // Análise específica por tipo
-  if (type === 'IFlow') {
-    html += await analyzeIntegrationFlow(artifact, pkg);
-  } else if (type === 'ScriptCollection') {
-    html += await analyzeScriptCollection(artifact, pkg);
-  }
-  
-  // Detalhes técnicos
-  html += buildTechnicalDetails(artifact);
-  
-  html += `</div>`;
-  return html;
-}
-
-async function analyzeIntegrationFlow(artifact, pkg) {
-  let html = `<div class="flow-description">`;
-  html += `<strong>💡 O que este fluxo faz:</strong><br>`;
-  
-  // Tenta extrair informações do conteúdo do iFlow
-  const contentFileName = artifact.id + "_content";
-  const content = pkg.fileContents[contentFileName];
-  
-  if (content) {
-    try {
-      // Analisa endpoints e participantes
-      const endpoints = await extractIFlowEndpoints(content);
-      
-      if (endpoints.length > 0) {
-        html += `Este fluxo de integração conecta ${endpoints.length} sistema(s) ou serviço(s):<br>`;
-        html += `<ul>`;
-        endpoints.forEach(endpoint => {
-          html += `<li><strong>${escapeHtml(endpoint.name)}</strong> - ${escapeHtml(endpoint.role)} via ${escapeHtml(endpoint.protocol)}`;
-          if (endpoint.address && endpoint.address !== 'N/A') {
-            html += ` (${escapeHtml(endpoint.address)})`;
-          }
-          html += `</li>`;
-        });
-        html += `</ul>`;
-      } else {
-        html += `Este é um fluxo de integração que processa dados entre sistemas. Os detalhes específicos de conectividade precisam ser verificados no ambiente CPI.`;
-      }
-      
-      // Analisa parâmetros se existirem
-      const parameterInfo = await analyzeFlowParameters(content);
-      if (parameterInfo) {
-        html += parameterInfo;
-      }
-      
-      // Adicionar diagrama BPMN
-      const contentFileName = artifact.id + "_content";
-      const content = pkg.fileContents[contentFileName];
-      if(content) {
-          try {
-            const bpmnImage = await generateBpmnImage(content);
-            if(bpmnImage) {
-                html += `<div class="bpmn-diagram-container">
-                    <h4>Diagrama do Fluxo</h4>
-                    <img src="${bpmnImage}" alt="Diagrama BPMN do iFlow ${escapeHtml(artifact.displayName)}">
-                </div>`;
-            }
-          } catch(e) {
-              console.error("Error generating BPMN image for documentation", e);
-          }
-      }
-
-    } catch (e) {
-      html += `Este fluxo de integração processa e roteia dados entre sistemas. Para detalhes específicos de conectividade e configuração, consulte o ambiente SAP CPI.`;
+    if (artifact.additionalAttributes?.shortText?.attributeValues?.[0]) {
+      detailsHtml += `<p><strong>Descrição:</strong> ${escapeHtml(artifact.additionalAttributes.shortText.attributeValues[0])}</p>`;
     }
-  } else {
-    html += `Este é um fluxo de integração que não pôde ser analisado automaticamente.`;
-  }
-  
-  html += `</div>`;
-  return html;
-}
+    
+    container.innerHTML = detailsHtml;
 
+    if (type === 'IFlow') {
+        const flowAnalysis = await analyzeIntegrationFlow(artifact, pkg);
+        container.appendChild(flowAnalysis);
+    } else if (type === 'ScriptCollection') {
+        const scriptAnalysis = await analyzeScriptCollection(artifact, pkg);
+        container.appendChild(scriptAnalysis);
+    }
+    
+    const techDetails = buildTechnicalDetails(artifact);
+    container.appendChild(techDetails);
+    
+    return container;
+}
+  
+async function analyzeIntegrationFlow(artifact, pkg) {
+    const container = document.createElement('div');
+    container.className = 'flow-description';
+    container.innerHTML = '<strong>💡 O que este fluxo faz:</strong><br>';
+  
+    const contentFileName = artifact.id + "_content";
+    const content = pkg.fileContents[contentFileName];
+  
+    if (content) {
+        try {
+            const endpoints = await extractIFlowEndpoints(content);
+            if (endpoints.length > 0) {
+                let listHtml = `Este fluxo de integração conecta ${endpoints.length} sistema(s) ou serviço(s):<ul>`;
+                endpoints.forEach(endpoint => {
+                    listHtml += `<li><strong>${escapeHtml(endpoint.name)}</strong> - ${escapeHtml(endpoint.role)} via ${escapeHtml(endpoint.protocol)}${endpoint.address && endpoint.address !== 'N/A' ? ` (${escapeHtml(endpoint.address)})` : ''}</li>`;
+                });
+                listHtml += '</ul>';
+                container.innerHTML += listHtml;
+            } else {
+                container.innerHTML += `<p>Este é um fluxo de integração que processa dados entre sistemas. Os detalhes específicos de conectividade precisam ser verificados no ambiente CPI.</p>`;
+            }
+
+            const parameterInfo = await analyzeFlowParameters(content);
+            if(parameterInfo) container.appendChild(parameterInfo);
+
+            const bpmnImage = await generateBpmnImage(content);
+            if (bpmnImage) {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'bpmn-diagram-container';
+                imgContainer.innerHTML = `<h4>Diagrama do Fluxo</h4><img src="${bpmnImage}" alt="Diagrama BPMN do iFlow ${escapeHtml(artifact.displayName)}">`;
+                container.appendChild(imgContainer);
+            }
+
+        } catch (e) {
+            container.innerHTML += `<p>Este fluxo de integração processa e roteia dados entre sistemas. Para detalhes específicos de conectividade e configuração, consulte o ambiente SAP CPI.</p>`;
+        }
+    } else {
+      container.innerHTML += `<p>Este é um fluxo de integração que não pôde ser analisado automaticamente.</p>`;
+    }
+    
+    return container;
+}
+  
 async function analyzeScriptCollection(artifact, pkg) {
-  let html = `<div class="flow-description">`;
-  html += `<strong>💻 Scripts personalizados incluídos:</strong><br>`;
+    const container = document.createElement('div');
+    container.className = 'flow-description';
+    container.innerHTML = '<strong>💻 Scripts personalizados incluídos:</strong><br>';
   
-  const contentFileName = artifact.id + "_content";
-  const content = pkg.fileContents[contentFileName];
+    const contentFileName = artifact.id + "_content";
+    const content = pkg.fileContents[contentFileName];
   
-  if (content) {
+    if (content) {
+      try {
+        const zip = await JSZip.loadAsync(content);
+        const scripts = [];
+        
+        zip.forEach((relativePath, zipEntry) => {
+          if (!zipEntry.dir) {
+            const ext = relativePath.split('.').pop().toLowerCase();
+            const type = { groovy: 'Groovy', js: 'JavaScript', java: 'Java' }[ext] || 'Script';
+            scripts.push({ name: relativePath, type: type });
+          }
+        });
+        
+        if (scripts.length > 0) {
+          let listHtml = `Esta coleção contém ${scripts.length} script(s) personalizado(s):<ul>`;
+          scripts.forEach(script => {
+            listHtml += `<li><strong>${escapeHtml(script.name)}</strong> (${escapeHtml(script.type)})</li>`;
+          });
+          listHtml += '</ul><p><em>Estes scripts implementam lógicas de negócio específicas, transformações de dados ou validações customizadas necessárias para o processo de integração.</em></p>';
+          container.innerHTML += listHtml;
+        }
+        
+      } catch (e) {
+        container.innerHTML += `<p>Esta coleção contém scripts personalizados que implementam lógicas específicas do processo de integração.</p>`;
+      }
+    }
+    
+    return container;
+}
+  
+async function analyzeFlowParameters(content) {
     try {
       const zip = await JSZip.loadAsync(content);
-      const scripts = [];
-      
-      zip.forEach((relativePath, zipEntry) => {
-        if (!zipEntry.dir) {
-          const ext = relativePath.split('.').pop().toLowerCase();
-          const type = ext === 'groovy' ? 'Groovy' : 
-                      ext === 'js' ? 'JavaScript' : 
-                      ext === 'java' ? 'Java' : 'Script';
-          scripts.push({ name: relativePath, type: type });
-        }
-      });
-      
-      if (scripts.length > 0) {
-        html += `Esta coleção contém ${scripts.length} script(s) personalizado(s):<br>`;
-        html += `<ul>`;
-        scripts.forEach(script => {
-          html += `<li><strong>${escapeHtml(script.name)}</strong> (${escapeHtml(script.type)})</li>`;
-        });
-        html += `</ul>`;
-        html += `<p><em>Estes scripts implementam lógicas de negócio específicas, transformações de dados ou validações customizadas necessárias para o processo de integração.</em></p>`;
-      }
-      
-    } catch (e) {
-      html += `Esta coleção contém scripts personalizados que implementam lógicas específicas do processo de integração.`;
-    }
-  }
-  
-  html += `</div>`;
-  return html;
-}
-
-async function analyzeFlowParameters(content) {
-  try {
-    const zip = await JSZip.loadAsync(content);
-    const propDefFile = Object.values(zip.files).find(f => f.name.endsWith('.propdef'));
-    const propFile = Object.values(zip.files).find(f => f.name.endsWith('.prop'));
-    
-    if (propDefFile || propFile) {
-      let html = `<div class="parameter-section">`;
-      html += `<strong>⚙️ Parâmetros configuráveis:</strong><br>`;
+      const propDefFile = Object.values(zip.files).find(f => f.name.endsWith('.propdef'));
       
       if (propDefFile) {
+        const container = document.createElement('div');
+        container.className = 'parameter-section';
+        container.innerHTML = '<strong>⚙️ Parâmetros configuráveis:</strong><br>';
+  
         const propDefContent = await propDefFile.async('string');
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(propDefContent, 'text/xml');
         const parameters = xmlDoc.querySelectorAll('parameter');
         
         if (parameters.length > 0) {
-          html += `Este fluxo possui ${parameters.length} parâmetro(s) configurável(is):<br>`;
-          html += `<ul>`;
+          let listHtml = `Este fluxo possui ${parameters.length} parâmetro(s) configurável(is):<ul>`;
           parameters.forEach(param => {
             const name = param.querySelector('name')?.textContent || 'N/A';
             const type = param.querySelector('type')?.textContent || 'N/A';
             const description = param.querySelector('description')?.textContent || 'Sem descrição';
-            html += `<li><strong>${escapeHtml(name)}</strong> (${escapeHtml(type)}) - ${escapeHtml(description)}</li>`;
+            listHtml += `<li><strong>${escapeHtml(name)}</strong> (${escapeHtml(type)}) - ${escapeHtml(description)}</li>`;
           });
-          html += `</ul>`;
+          listHtml += '</ul>';
+          container.innerHTML += listHtml;
+        }
+        
+        if (Object.values(zip.files).some(f => f.name.endsWith('.prop'))) {
+          container.innerHTML += `<em>Os valores padrão destes parâmetros estão definidos no arquivo de configuração do fluxo.</em>`;
+        }
+        
+        return container;
+      }
+    } catch (e) {
+      console.warn("Could not analyze flow parameters", e);
+    }
+    return null;
+}
+  
+function buildTechnicalDetails(artifact) {
+    const container = document.createElement('div');
+    container.className = 'technical-info';
+    let detailsHtml = `<strong>🔧 Detalhes Técnicos:</strong><br>
+                        <strong>ID Interno:</strong> ${escapeHtml(artifact.id)}<br>`;
+    
+    if (artifact.modifiedAt) {
+      detailsHtml += `<strong>Última Modificação:</strong> ${new Date(artifact.modifiedAt).toLocaleDateString('pt-BR')}<br>`;
+    }
+    
+    if (artifact.contentType) {
+      detailsHtml += `<strong>Tipo de Conteúdo:</strong> ${escapeHtml(artifact.contentType)}<br>`;
+    }
+    
+    if (artifact.additionalAttributes) {
+      for (const [key, value] of Object.entries(artifact.additionalAttributes)) {
+        if (key !== 'shortText' && value.attributeValues && value.attributeValues[0]) {
+          const friendlyKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+          detailsHtml += `<strong>${escapeHtml(friendlyKey)}:</strong> ${escapeHtml(value.attributeValues[0])}<br>`;
         }
       }
-      
-      if (propFile) {
-        html += `<em>Os valores padrão destes parâmetros estão definidos no arquivo de configuração do fluxo.</em>`;
-      }
-      
-      html += `</div>`;
-      return html;
     }
-  } catch (e) {
-    // Ignora erros na análise de parâmetros
-  }
-  return '';
-}
-
-function buildTechnicalDetails(artifact) {
-  let html = `<div class="technical-info">`;
-  html += `<strong>🔧 Detalhes Técnicos:</strong><br>`;
-  html += `<strong>ID Interno:</strong> ${escapeHtml(artifact.id)}<br>`;
-  
-  if (artifact.modifiedAt) {
-    const date = new Date(artifact.modifiedAt).toLocaleDateString('pt-BR');
-    html += `<strong>Última Modificação:</strong> ${date}<br>`;
-  }
-  
-  if (artifact.contentType) {
-    html += `<strong>Tipo de Conteúdo:</strong> ${escapeHtml(artifact.contentType)}<br>`;
-  }
-  
-  // Adiciona informações adicionais se disponíveis
-  if (artifact.additionalAttributes) {
-    for (const [key, value] of Object.entries(artifact.additionalAttributes)) {
-      if (key !== 'shortText' && value.attributeValues && value.attributeValues[0]) {
-        const friendlyKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-        html += `<strong>${escapeHtml(friendlyKey)}:</strong> ${escapeHtml(value.attributeValues[0])}<br>`;
-      }
-    }
-  }
-  
-  html += `</div>`;
-  return html;
-}
-
-async function getArtifactCount(pkg) {
-  if (!pkg.resourcesCntDecoded) return {};
-  
-  try {
-    const pkgInfo = JSON.parse(pkg.resourcesCntDecoded);
-    const resources = pkgInfo.resources || [];
     
-    return {
-      iflows: resources.filter(r => r.resourceType === 'IFlow').length,
-      scripts: resources.filter(r => r.resourceType === 'ScriptCollection').length,
-      configs: resources.filter(r => !['IFlow', 'ScriptCollection', 'ContentPackage'].includes(r.resourceType)).length
-    };
-  } catch (e) {
-    return {};
-  }
+    container.innerHTML = detailsHtml;
+    return container;
 }
 
-function buildDocumentFooter() {
-  return `
-    <hr style="margin: 40px 0 20px 0; border: none; border-top: 2px solid #e2e8f0;">
-    <div style="text-align: center; color: #718096; font-size: 0.9em;">
-      <p><strong>📄 Documento gerado automaticamente pelo SAP CPI Package Decoder</strong></p>
-      <p>Este documento fornece uma visão técnica dos pacotes de integração exportados do SAP Cloud Platform Integration.</p>
-      <p>Para dúvidas sobre implementação ou configuração específica, consulte a documentação técnica detalhada ou a equipe de desenvolvimento.</p>
-      <p><em>Gerado em: ${new Date().toLocaleString('pt-BR')}</em></p>
-    </div>
-  `;
-}
-
-/**
- * Renders a BPMN diagram from XML to a Base64 image data URL.
- * @param {ArrayBuffer|string} iflowContent - The zipped content of the iFlow artifact.
- * @returns {Promise<string|null>} A promise that resolves with the data URL of the image, or null on error.
- */
 async function generateBpmnImage(iflowContent) {
     let iflowXml = "";
     try {
-        // Lógica para extrair o XML, seja de um ZIP ou direto
         if (typeof iflowContent === 'string') {
             iflowXml = iflowContent;
         } else {
-             const zip = await new JSZip().loadAsync(iflowContent);
-             const xmlFile = Object.values(zip.files).find(
-                (file) => !file.dir && (file.name.endsWith('.iflw') || file.name.endsWith('.xml'))
-             );
-             if (xmlFile) {
-                iflowXml = await xmlFile.async("string");
-             }
+            const zip = await JSZip.loadAsync(iflowContent);
+            const xmlFile = Object.values(zip.files).find(f => !f.dir && (f.name.endsWith('.iflw') || f.name.endsWith('.xml')));
+            if(xmlFile) iflowXml = await xmlFile.async("string");
         }
        
-        if (!iflowXml) {
-            throw new Error("No BPMN XML found in the artifact content.");
-        }
+        if (!iflowXml) throw new Error("No BPMN XML found.");
 
-        // Criar container temporário e invisível para renderização
         const tempContainer = document.createElement('div');
-        tempContainer.style.position = 'absolute';
-        tempContainer.style.left = '-9999px';
-        tempContainer.style.width = '1000px'; 
-        tempContainer.style.height = '800px'; 
+        Object.assign(tempContainer.style, { position: 'absolute', left: '-9999px', width: '1000px', height: '800px' });
         document.body.appendChild(tempContainer);
 
         const viewer = new BpmnJS({ container: tempContainer });
         await viewer.importXML(iflowXml);
-        
-        // Focar o diagrama
         viewer.get('canvas').zoom('fit-viewport');
         
         const { svg } = await viewer.saveSVG();
         
-        // Limpeza
         viewer.destroy();
         document.body.removeChild(tempContainer);
 
-        // Converter SVG para Data URL
-        const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-        return dataUrl;
+        const dataUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 
+        return dataUrl;
+        
     } catch (err) {
         console.error('Failed to generate BPMN image:', err);
         return null;
