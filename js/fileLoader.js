@@ -1,13 +1,21 @@
 // Functions for handling ZIP files and resources
 function handleZipFile(file) {
+  const packageIndex = packagesData.length;
   originalZipName = file.name;
-  results.innerHTML = "";
   fileContents = {};
   resourcesCntDecoded = "";
   const downloadSection = document.getElementById("downloadSection");
   if (downloadSection) {
     downloadSection.style.display = "none";
   }
+
+  const packageDiv = document.createElement("div");
+  packageDiv.className = "package-section";
+  packageDiv.dataset.packageIndex = packageIndex;
+  const header = document.createElement("h4");
+  header.className = "result-title";
+  header.textContent = `📦 ${file.name}`;
+  packageDiv.appendChild(header);
 
   const zip = new JSZip();
   const fileBufferPromise = file.arrayBuffer();
@@ -36,14 +44,14 @@ function handleZipFile(file) {
     }
 
     if (resourcesCnt) {
-      processFile("resources.cnt", resourcesCnt);
+      processFile("resources.cnt", resourcesCnt, packageDiv, packageIndex);
     }
     if (contentMetadata) {
-      processFile("contentmetadata.md", contentMetadata);
+      processFile("contentmetadata.md", contentMetadata, packageDiv, packageIndex);
     }
 
     if (!resourcesCnt && !contentMetadata) {
-      displayIflowFileList();
+      displayIflowFileList(packageDiv, packageIndex);
     }
 
     if (downloadSection) {
@@ -53,6 +61,9 @@ function handleZipFile(file) {
         downloadSection.style.display = "none";
       }
     }
+
+    results.appendChild(packageDiv);
+    packagesData.push({ fileContents, resourcesCntDecoded, originalZipName });
   });
 }
 
@@ -129,7 +140,7 @@ function downloadFileResource(resourceId, resourceName) {
   URL.revokeObjectURL(a.href);
 }
 
-function processFile(fileName, content) {
+function processFile(fileName, content, container, packageIndex) {
   const resultDiv = document.createElement("div");
   resultDiv.className = "result-section";
   let processedContent = "";
@@ -138,23 +149,23 @@ function processFile(fileName, content) {
     if (fileName === "contentmetadata.md") {
       title = t("content_metadata_title");
       const decoded = atob(content.trim());
-      processedContent = `<div class="code-block">${escapeHtml(decoded)}</div>`;
+      processedContent = `<div class=\"code-block\">${escapeHtml(decoded)}</div>`;
     } else if (fileName === "resources.cnt") {
       title = t("package_resources_title");
       const decoded = atob(content.trim());
       const jsonData = JSON.parse(decoded);
       resourcesCntDecoded = JSON.stringify(jsonData, null, 2);
-      processedContent = `<div class="json-viewer">${formatPackageInfo(jsonData)}</div>`;
+      processedContent = `<div class=\"json-viewer\">${formatPackageInfo(jsonData, packageIndex)}</div>`;
     }
     if (title) {
-      resultDiv.innerHTML = `<div class="result-title">${title}</div>${processedContent}`;
-      results.appendChild(resultDiv);
+      resultDiv.innerHTML = `<div class=\"result-title\">${title}</div>${processedContent}`;
+      container.appendChild(resultDiv);
     }
   } catch (error) {
-    resultDiv.innerHTML = `<div class="result-title error">${t("processing_error_title")}${fileName}</div>` +
-      `<div class="error">${t("error_label")}${error.message}</div>` +
-      `<div class="code-block">${escapeHtml(String(content).substring(0, 500))}...</div>`;
-    results.appendChild(resultDiv);
+    resultDiv.innerHTML = `<div class=\"result-title error\">${t("processing_error_title")}${fileName}</div>` +
+      `<div class=\"error\">${t("error_label")}${error.message}</div>` +
+      `<div class=\"code-block\">${escapeHtml(String(content).substring(0, 500))}...</div>`;
+    container.appendChild(resultDiv);
   }
 }
 
@@ -180,27 +191,27 @@ function createTemporaryIflowPackage(zipName, buffer) {
   fileContents[`${resourceId}_content`] = buffer;
 }
 
-function displayIflowFileList() {
+function displayIflowFileList(container, packageIndex) {
   const files = Object.keys(fileContents).filter((name) => !name.endsWith("/"));
   if (files.length === 0) return;
   const resultDiv = document.createElement("div");
   resultDiv.className = "result-section";
-  let html = `<div class="result-title">${t("iflow_files_title")}</div>`;
+  let html = `<div class=\"result-title\">${t("iflow_files_title")}</div>`;
   html += '<ul class="script-list">';
   files.forEach((fn) => {
     const displayName = fn.split("/").pop();
-    html += `<li class="script-item" data-file-path="${fn}">` +
-            `<div class="script-name">${displayName}</div>` +
-            `<div class="script-type">${fn}</div>` +
+    html += `<li class=\"script-item\" data-file-path=\"${fn}\" data-package-index=\"${packageIndex}\">` +
+            `<div class=\"script-name\">${displayName}</div>` +
+            `<div class=\"script-type\">${fn}</div>` +
             `</li>`;
   });
   html += '</ul>';
-  html += `<p style="margin-top: 15px; color: #666; font-style: italic;">${t("file_click_hint")}</p>`;
+  html += `<p style=\"margin-top: 15px; color: #666; font-style: italic;\">${t("file_click_hint")}</p>`;
   resultDiv.innerHTML = html;
-  results.appendChild(resultDiv);
+  container.appendChild(resultDiv);
 }
 
-function formatPackageInfo(data) {
+function formatPackageInfo(data, packageIndex) {
   let html = "";
   if (data.resources) {
     html += `<h5>${t("resources_found")}</h5>`;
@@ -209,12 +220,9 @@ function formatPackageInfo(data) {
       const urlDataAttr = resource.additionalAttributes.url
         ? ` data-resource-url="${resource.additionalAttributes.url.attributeValues}"`
         : "";
-      html += `<li class="script-item" data-resource-id="${resource.id}" data-resource-type="${resource.resourceType}"${urlDataAttr}>` +
+      html += `<li class="script-item" data-resource-id="${resource.id}" data-resource-type="${resource.resourceType}" data-package-index="${packageIndex}"${urlDataAttr}>` +
               `<div class="script-name">${resource.displayName || resource.name}</div>` +
-              `<div class="script-type">${t("resource_details")
-                .replace('{type}', resource.resourceType)
-                .replace('{version}', resource.semanticVersion || resource.version)
-                .replace('{user}', resource.modifiedBy)}</div>` +
+              `<div class="script-type">${t("resource_details").replace('{type}', resource.resourceType).replace('{version}', resource.semanticVersion || resource.version).replace('{user}', resource.modifiedBy)}</div>` +
               `</li>`;
     });
     html += "</ul>";

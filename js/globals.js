@@ -23,6 +23,7 @@ let isFullscreen = false;
 let currentFiles = {};
 let originalZipName = "";
 let currentFileName = "";
+let packagesData = [];
 
 function getFileContent(fileName) {
   if (fileContents[fileName]) {
