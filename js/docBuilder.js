@@ -4,18 +4,18 @@ async function buildDocumentation() {
     return;
   }
 
-  let md = "# SAP CPI Packages Documentation\n\n";
+  let html = "<h1>SAP CPI Packages Documentation</h1>";
 
   for (const [idx, pkg] of packagesData.entries()) {
     const pkgName = pkg.originalZipName || `Package ${idx + 1}`;
-    md += `## ${pkgName}\n\n`;
+    html += `<h2>${escapeHtml(pkgName)}</h2>`;
 
     const metadataContent = pkg.fileContents["contentmetadata.md"];
     if (metadataContent) {
       try {
         const decoded = atob(metadataContent.trim());
-        md += `### ${t("content_metadata_title")}\n\n`;
-        md += "```\n" + decoded + "\n```\n\n";
+        html += `<h3>${t("content_metadata_title")}</h3>`;
+        html += `<pre><code>${escapeHtml(decoded)}</code></pre>`;
       } catch (e) {
         console.error("Error decoding content metadata", e);
       }
@@ -25,17 +25,17 @@ async function buildDocumentation() {
       try {
         const pkgInfo = JSON.parse(pkg.resourcesCntDecoded);
         if (pkgInfo.resources && pkgInfo.resources.length > 0) {
-          md += `### ${t("package_resources_title")}\n\n`;
-          md += "| Name | Type | Version | Content Type |\n";
-          md += "|------|------|---------|--------------|\n";
+          html += `<h3>${t("package_resources_title")}</h3>`;
+          html +=
+            "<table><tr><th>Name</th><th>Type</th><th>Version</th><th>Content Type</th></tr>";
           for (const res of pkgInfo.resources) {
-            const name = res.displayName || res.name || res.id;
-            const type = res.resourceType || "";
-            const version = res.semanticVersion || res.version || "";
-            const ct = res.contentType || "";
-            md += `| ${name} | ${type} | ${version} | ${ct} |\n`;
+            const name = escapeHtml(res.displayName || res.name || res.id);
+            const type = escapeHtml(res.resourceType || "");
+            const version = escapeHtml(res.semanticVersion || res.version || "");
+            const ct = escapeHtml(res.contentType || "");
+            html += `<tr><td>${name}</td><td>${type}</td><td>${version}</td><td>${ct}</td></tr>`;
           }
-          md += "\n";
+          html += "</table>";
 
           // Append rendered view for each resource
           for (const res of pkgInfo.resources) {
@@ -53,8 +53,8 @@ async function buildDocumentation() {
               );
               if (rendered) {
                 const heading = files.length > 1 ? `${name} - ${target}` : name;
-                md += `#### ${heading}\n\n`;
-                md += rendered + "\n\n";
+                html += `<h4>${escapeHtml(heading)}</h4>`;
+                html += rendered;
               }
             }
           }
@@ -65,10 +65,11 @@ async function buildDocumentation() {
     }
   }
 
-  const blob = new Blob([md], { type: "text/markdown" });
+  const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${html}</body></html>`;
+  const blob = htmlDocx.asBlob(fullHtml);
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "cpi_package_documentation.md";
+  a.download = "cpi_package_documentation.docx";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
