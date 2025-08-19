@@ -12,6 +12,7 @@ const copyBtn = document.getElementById("copyBtn");
 const viewSwitchBtn = document.getElementById("viewSwitchBtn");
 const fullscreenBtn = document.getElementById("fullscreenBtn");
 const downloadBtn = document.getElementById("downloadBtn");
+const docBtn = document.getElementById("docBtn");
 const refreshBtn = document.getElementById("refreshBtn");
 const renderedView = document.getElementById("renderedView");
 const langSelect = document.getElementById("langSelect");

@@ -93,6 +93,7 @@ formatBtn.addEventListener("click", () => {
 
 fullscreenBtn.addEventListener("click", toggleFullscreen);
 downloadBtn.addEventListener("click", downloadResources);
+docBtn.addEventListener("click", buildDocumentation);
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && modal.style.display === "block") {
