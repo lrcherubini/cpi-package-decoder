@@ -76,7 +76,11 @@ const translations = {
     relations_table_source: "Origem",
     relations_table_target: "Destino",
     relations_table_type: "Tipo de Relação",
-    param_label: "Parâmetro: {param}"
+    param_label: "Parâmetro: {param}",
+    guideline_report_title: "Relatório de Análise de Guidelines",
+    guideline_pass: "Aprovados",
+    guideline_warn: "Avisos",
+    guideline_fail: "Falhas"
   },
   "en-US": {
     title: "SAP CPI Package Decoder",
@@ -155,7 +159,11 @@ const translations = {
     relations_table_source: "Source",
     relations_table_target: "Target",
     relations_table_type: "Relation Type",
-    param_label: "Parameter: {param}"
+    param_label: "Parameter: {param}",
+    guideline_report_title: "Guideline Analysis Report",
+    guideline_pass: "Passed",
+    guideline_warn: "Warnings",
+    guideline_fail: "Failures"
   },
   "es-ES": {
     title: "SAP CPI Package Decoder",
@@ -234,7 +242,11 @@ const translations = {
     relations_table_source: "Origen",
     relations_table_target: "Destino",
     relations_table_type: "Tipo de Relación",
-    param_label: "Parámetro: {param}"
+    param_label: "Parámetro: {param}",
+    guideline_report_title: "Informe de Análisis de Directrices",
+    guideline_pass: "Aprobados",
+    guideline_warn: "Advertencias",
+    guideline_fail: "Fallos"
   }
 };
 

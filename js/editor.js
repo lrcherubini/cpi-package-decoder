@@ -1,7 +1,7 @@
 // Editor related functions
 let isRenderedView = false;
 
-function initializeMonacoEditor(content, resourceName, baseFiles = {}) {
+function initializeMonacoEditor(content, resourceName, baseFiles = {}, guidelineReport = null) {
   if (!monacoEditor) {
     monacoEditor = monaco.editor.create(
       document.getElementById("monacoEditor"),
@@ -21,11 +21,15 @@ function initializeMonacoEditor(content, resourceName, baseFiles = {}) {
     );
   }
 
-  loadContentIntoMonaco(content, resourceName, baseFiles);
+  loadContentIntoMonaco(content, resourceName, baseFiles, guidelineReport);
 }
 
-function loadContentIntoMonaco(content, resourceName, baseFiles = {}) {
+function loadContentIntoMonaco(content, resourceName, baseFiles = {}, guidelineReport = null) {
   currentFiles = { ...baseFiles };
+  if (guidelineReport) {
+      currentFiles['guideline_report'] = guidelineReport;
+  }
+  
   fileSelect.style.display = "none";
   fileSelect.innerHTML = "";
 
@@ -40,49 +44,53 @@ function loadContentIntoMonaco(content, resourceName, baseFiles = {}) {
         }
       });
 
-      if (files.length === 1) {
-        return innerZip
-          .file(files[0])
-          .async("string")
-          .then((scriptContent) => {
-            currentFiles[files[0]] = scriptContent;
-            setEditorContent(scriptContent, files[0]);
-          });
-      } else if (files.length > 1) {
-        const promises = files.map((fileName) => {
-          return innerZip
-            .file(fileName)
-            .async("string")
-            .then((scriptContent) => {
-              currentFiles[fileName] = scriptContent;
-            });
-        });
-        return Promise.all(promises).then(() => {
-          fileSelect.innerHTML = "";
-          files.forEach((fn) => {
-            const opt = document.createElement("option");
-            opt.value = fn;
-            opt.textContent = fn;
-            fileSelect.appendChild(opt);
-          });
-          fileSelect.style.display = "inline-block";
-          fileSelect.value = files[0];
-          setEditorContent(currentFiles[files[0]], files[0]);
-        });
-      }
-    })
-    .catch(() => {
+      const loadPromises = files.map(fileName => 
+        innerZip.file(fileName).async("string").then(scriptContent => {
+          currentFiles[fileName] = scriptContent;
+        })
+      );
+      
+      return Promise.all(loadPromises).then(() => files);
+
+    }).catch(() => {
       const reader = new FileReader();
       reader.onload = function (e) {
         const textContent = e.target.result;
-        setEditorContent(textContent, resourceName);
         currentFiles[resourceName] = textContent;
       };
       reader.readAsText(new Blob([content]));
+      return [resourceName]; // Retorna o nome do arquivo original num array
+    })
+    .then(files => {
+        const allFilesToShow = Object.keys(currentFiles).filter(k => k.startsWith('guideline_report') || files.includes(k));
+
+        if (allFilesToShow.length > 1 || guidelineReport) {
+            fileSelect.innerHTML = "";
+            if (guidelineReport) {
+                const opt = document.createElement("option");
+                opt.value = 'guideline_report';
+                opt.textContent = '📋 Relatório de Guidelines';
+                fileSelect.appendChild(opt);
+            }
+            files.forEach((fn) => {
+                const opt = document.createElement("option");
+                opt.value = fn;
+                opt.textContent = fn;
+                fileSelect.appendChild(opt);
+            });
+            fileSelect.style.display = "inline-block";
+            
+            const initialFile = guidelineReport ? 'guideline_report' : files[0];
+            fileSelect.value = initialFile;
+            setEditorContent(currentFiles[initialFile], initialFile);
+        } else if (files.length === 1) {
+            setEditorContent(currentFiles[files[0]], files[0]);
+        }
     });
 }
 
 function detectLanguage(fileName) {
+  if (fileName === 'guideline_report') return 'json';
   const ext = fileName.split(".").pop().toLowerCase().trim();
   const languageMap = {
     groovy: "groovy",
@@ -113,38 +121,24 @@ function detectLanguage(fileName) {
 }
 
 function setEditorContent(content, fileName) {
-  // Configurações iniciais do Monaco (permanecem as mesmas)
   const language = detectLanguage(fileName);
-  languageSelect.value = language;
   monaco.editor.setModelLanguage(monacoEditor.getModel(), language);
-  monacoEditor.setValue(content);
+  monacoEditor.setValue(typeof content === 'object' ? JSON.stringify(content, null, 2) : content);
   currentFileName = fileName;
 
-  const ext = fileName.split(".").pop().toLowerCase();
-  const hasRenderedView = [
-    "iflw",
-    "project",
-    "mf",
-    "prop",
-    "propdef",
-    "mmap",
-    "json",
-  ].includes(ext);
+  const hasRenderedView = ["iflw", "project", "mf", "prop", "propdef", "mmap", "json", "guideline_report"].includes(fileName.split('.').pop().toLowerCase()) || fileName === 'guideline_report';
 
   if (hasRenderedView) {
-    // **LÓGICA INVERTIDA: RENDERIZADO É O PADRÃO**
     isRenderedView = true;
     viewSwitchBtn.style.display = "inline-block";
-    viewSwitchBtn.textContent = t("view_code"); // Define o texto para a próxima ação
+    viewSwitchBtn.textContent = t("view_code"); 
 
     showRenderedView(content, currentFileName);
     renderedView.style.display = "block";
     document.getElementById("monacoEditor").style.display = "none";
   } else {
-    // Comportamento padrão para arquivos sem visão renderizada
     isRenderedView = false;
     viewSwitchBtn.style.display = "none";
-
     renderedView.style.display = "none";
     document.getElementById("monacoEditor").style.display = "block";
   }
@@ -235,49 +229,36 @@ function toggleViewMode() {
   if (!monacoEditor) return;
 
   if (isRenderedView) {
-    // MUDANDO PARA A VISÃO DE CÓDIGO
     renderedView.style.display = "none";
     document.getElementById("monacoEditor").style.display = "block";
-    viewSwitchBtn.textContent = t("view_rendered"); // Atualiza o texto para a próxima ação
+    viewSwitchBtn.textContent = t("view_rendered");
     isRenderedView = false;
   } else {
-    // MUDANDO PARA A VISÃO RENDERIZADA
     showRenderedView(monacoEditor.getValue(), currentFileName);
     renderedView.style.display = "block";
     document.getElementById("monacoEditor").style.display = "none";
-    viewSwitchBtn.textContent = t("view_code"); // Atualiza o texto para a próxima ação
+    viewSwitchBtn.textContent = t("view_code");
     isRenderedView = true;
   }
 }
 
-// ==================================================================
-// ========  INÍCIO DA SEÇÃO DE RENDERIZAÇÃO MELHORADA  ========
-// ==================================================================
+
 function showRenderedView(content, fileName) {
   renderedView.innerHTML = "";
   renderedView.className = "rendered-container";
   const ext = fileName.split(".").pop().toLowerCase();
 
   try {
-    if (ext === "iflw") {
-      // 1. Cria o iframe sem dados na URL
+     if (fileName === 'guideline_report') {
+        renderedView.innerHTML = buildGuidelineReportView(content);
+     } else if (ext === "iflw") {
       const iframe = document.createElement("iframe");
       iframe.src = "bpmn_viewer.html";
-      iframe.style.width = "100%";
-      iframe.style.height = "100%";
-      iframe.style.border = "none";
-
-      // 2. Define um evento 'onload' para enviar os dados quando o iframe estiver pronto
       iframe.onload = () => {
-        // 3. Envia o conteúdo XML para o iframe usando postMessage
-        // O '*' significa que qualquer origem pode receber, o que é seguro neste contexto de arquivos estáticos.
         if (iframe.contentWindow) {
           iframe.contentWindow.postMessage(content, "*");
         }
       };
-
-      // Limpa a área de renderização e adiciona o novo iframe
-      renderedView.innerHTML = "";
       renderedView.appendChild(iframe);
     } else if (ext === "propdef") {
       renderedView.innerHTML = buildPropDefView(content);
@@ -288,22 +269,15 @@ function showRenderedView(content, fileName) {
     } else if (ext === "prop") {
       renderedView.innerHTML = buildPropView(content, currentFiles);
     } else if (ext === "json") {
-      try {
-        const obj = JSON.parse(content);
-        // Verifica se o JSON tem a estrutura de um ContentPackage
-        if (obj.resources && Array.isArray(obj.resources)) {
+      const obj = JSON.parse(content);
+      if (obj.resources && Array.isArray(obj.resources)) {
           buildContentPackageView(obj, currentFiles).then((view) => {
-            renderedView.innerHTML = ""; // Limpa a view antes de adicionar o novo conteúdo
+            renderedView.innerHTML = "";
             renderedView.appendChild(view);
           });
         } else {
-          // Se não for, usa o visualizador de árvore JSON genérico
           renderedView.appendChild(buildJsonTree(obj, "JSON"));
         }
-      } catch (e) {
-        renderedView.textContent =
-          t("json_error").replace("{error}", e.message);
-      }
     } else if (ext === "mmap") {
       renderedView.appendChild(buildMmapView(content));
     } else {
@@ -1143,4 +1117,32 @@ function escapeHtml(unsafe) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function buildGuidelineReportView(report) {
+    let html = `<div class="guideline-report-view">`;
+    html += `<h2>${t('guideline_report_title')}</h2>`;
+
+    // Summary
+    html += `<div class="summary-grid">
+        <div class="summary-box pass"><strong>${report.summary.pass}</strong><span>${t('guideline_pass')}</span></div>
+        <div class="summary-box warn"><strong>${report.summary.warn}</strong><span>${t('guideline_warn')}</span></div>
+        <div class="summary-box fail"><strong>${report.summary.fail}</strong><span>${t('guideline_fail')}</span></div>
+    </div>`;
+    
+    // Details
+    html += '<h3>Detalhes das Verificações</h3>';
+    report.results.forEach(res => {
+        html += `<div class="guideline-item ${res.result}">
+            <div class="guideline-header">
+                <span class="guideline-icon"></span>
+                <strong>${escapeHtml(res.name)}</strong>
+            </div>
+            <p class="guideline-desc">${escapeHtml(res.description)}</p>
+            <p class="guideline-message">${escapeHtml(res.message)}</p>
+        </div>`;
+    });
+
+    html += `</div>`;
+    return html;
 }

@@ -161,6 +161,82 @@ input[type="file"] {
 .script-name {
   font-weight: bold;
   color: #2d3748;
+  display: flex;
+  align-items: center;
+}
+
+.semaphore {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.semaphore.green { background-color: #48bb78; }
+.semaphore.yellow { background-color: #ed8936; }
+.semaphore.red { background-color: #e53e3e; }
+
+
+/* Guideline Report View Styles */
+.guideline-report-view {
+    padding: 20px;
+    background-color: #f9f9f9;
+}
+
+.guideline-report-view h2 {
+    color: #004499;
+    border-bottom: 2px solid #004499;
+    padding-bottom: 5px;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.summary-box {
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    color: white;
+}
+.summary-box strong { font-size: 2em; display: block; }
+.summary-box span { font-size: 1em; }
+
+.summary-box.pass { background-color: #48bb78; }
+.summary-box.warn { background-color: #ed8936; }
+.summary-box.fail { background-color: #e53e3e; }
+
+.guideline-item {
+    background-color: white;
+    border-left: 5px solid;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 0 5px 5px 0;
+}
+.guideline-item.pass { border-color: #48bb78; }
+.guideline-item.warn { border-color: #ed8936; }
+.guideline-item.fail { border-color: #e53e3e; }
+
+.guideline-header {
+    display: flex;
+    align-items: center;
+    font-size: 1.1em;
+}
+.guideline-desc {
+    font-style: italic;
+    color: #666;
+    margin: 5px 0;
+}
+.guideline-message {
+    font-family: 'Courier New', monospace;
+    background-color: #f0f0f0;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 10px;
 }
 
 .script-type {

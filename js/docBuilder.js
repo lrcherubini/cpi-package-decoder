@@ -63,19 +63,16 @@ async function buildDocumentation() {
         font-weight: bold; 
         margin: 5px 5px 5px 0;
       }
-      .flow-description { 
-        background: #e6fffa; 
-        padding: 15px; 
-        border-left: 4px solid #38b2ac; 
-        margin: 10px 0;
+      .guideline-report-section {
+        background: #f0f8ff;
+        padding: 15px;
+        border-left: 4px solid #4682b4;
+        margin: 15px 0;
       }
-      .technical-info { 
-        background: #fffbf0; 
-        padding: 12px; 
-        border-radius: 4px; 
-        font-size: 0.9em;
-        margin: 10px 0;
-      }
+      .guideline-item { padding: 5px; border-radius: 3px; margin: 5px 0; }
+      .guideline-item.pass { background-color: #e6fffa; border-left: 3px solid #38b2ac; }
+      .guideline-item.warn { background-color: #fffbf0; border-left: 3px solid #ed8936; }
+      .guideline-item.fail { background-color: #fff5f5; border-left: 3px solid #e53e3e; }
       table { 
         width: 100%; 
         border-collapse: collapse; 
@@ -92,74 +89,83 @@ async function buildDocumentation() {
         font-weight: 600; 
         color: #2d3748;
       }
-      tr:nth-child(even) { 
-        background: #f9f9f9; 
-      }
-      .endpoint-info {
-        background: #f0fff4;
-        padding: 12px;
-        border-radius: 4px;
-        margin: 8px 0;
-        border-left: 3px solid #48bb78;
-      }
-      .parameter-section {
-        background: #fef5e7;
-        padding: 15px;
-        border-radius: 6px;
-        margin: 10px 0;
-      }
-      .code-snippet {
-        background: #f7f7f7;
-        padding: 10px;
-        border-radius: 4px;
-        font-family: 'Courier New', monospace;
-        font-size: 0.9em;
-        margin: 8px 0;
-        border: 1px solid #ddd;
-      }
     </style>
     
     <h1>📋 Documentação de Pacotes SAP Cloud Integration</h1>
-    <p><strong>Documento gerado automaticamente</strong> contendo a análise técnica dos pacotes de integração exportados do SAP Cloud Platform Integration (CPI).</p>
-    <p><em>Data de geração:</em> ${new Date().toLocaleDateString('pt-BR', {
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })}</p>
+    <p><strong>Gerado em:</strong> ${new Date().toLocaleString('pt-BR')}</p>
   `;
 
-  // Processa cada pacote
   for (const [idx, pkg] of packagesData.entries()) {
     const pkgName = pkg.originalZipName || `Pacote ${idx + 1}`;
-    
     html += `<h2>📦 ${escapeHtml(pkgName)}</h2>`;
-
-    // Seção de resumo do pacote
-    html += await buildPackageSummary(pkg, pkgName);
-    
-    // Seção de metadados (se existir)
-    html += buildMetadataSection(pkg);
-    
-    // Seção principal: análise dos artefatos
     html += await buildArtifactsAnalysis(pkg);
   }
 
-  // Finalização do documento
-  html += buildDocumentFooter();
-
-  // Gera o arquivo Word
   const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${html}</body></html>`;
   const blob = htmlDocx.asBlob(fullHtml);
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `SAP_CPI_Package_Documentation_${new Date().toISOString().slice(0,10)}.docx`;
+  a.download = `SAP_CPI_Documentation_${new Date().toISOString().slice(0,10)}.docx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(a.href);
+}
+
+async function buildArtifactsAnalysis(pkg) {
+  let html = `<h3>🔧 Análise Detalhada dos Artefatos</h3>`;
+  if (!pkg.resourcesCntDecoded) return html;
+
+  try {
+    const pkgInfo = JSON.parse(pkg.resourcesCntDecoded);
+    for (const resource of (pkgInfo.resources || [])) {
+        if (resource.resourceType !== 'ContentPackage') {
+            html += await buildArtifactDetails(resource, pkg);
+        }
+    }
+  } catch (err) {
+    console.error("Error generating artifacts analysis", err);
+  }
+  return html;
+}
+
+async function buildArtifactDetails(artifact, pkg) {
+  const name = artifact.displayName || artifact.name || artifact.id;
+  let html = `<div class="artifact-overview">`;
+  html += `<h4>${getArtifactTypeIcon(artifact.resourceType)} ${escapeHtml(name)}</h4>`;
+  
+  html += `<div><span class="artifact-type">${escapeHtml(artifact.resourceType)}</span></div>`;
+  
+  if (artifact.resourceType === 'IntegrationFlow') {
+    html += await analyzeIntegrationFlow(artifact, pkg);
+  }
+  
+  html += `</div>`;
+  return html;
+}
+
+async function analyzeIntegrationFlow(artifact, pkg) {
+  let html = "";
+  const report = pkg.guidelineReports ? pkg.guidelineReports[artifact.id] : null;
+
+  if (report) {
+    html += `<div class="guideline-report-section">`;
+    html += `<strong>🚦 Relatório de Guidelines</strong><br>`;
+    html += `<p>Passaram: ${report.summary.pass} | Avisos: ${report.summary.warn} | Falhas: ${report.summary.fail}</p>`;
+    
+    report.results.forEach(res => {
+        html += `<div class="guideline-item ${res.result}">
+            <strong>${escapeHtml(res.name)}:</strong> ${escapeHtml(res.message)}
+        </div>`;
+    });
+    html += `</div>`;
+  }
+  return html;
+}
+
+// Helper functions (getArtifactTypeIcon can be simplified or expanded)
+function getArtifactTypeIcon(type) {
+  const icons = { 'IntegrationFlow': '🔄', 'ScriptCollection': '📜', 'MessageMapping': '🗺️' };
+  return icons[type] || '📄';
 }
 
 async function buildPackageSummary(pkg, pkgName) {
