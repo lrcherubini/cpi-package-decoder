@@ -11,15 +11,13 @@ uploadArea.addEventListener("dragleave", () => {
 uploadArea.addEventListener("drop", (e) => {
   e.preventDefault();
   uploadArea.classList.remove("dragover");
-  if (e.dataTransfer.files.length > 0) {
-    handleZipFile(e.dataTransfer.files[0]);
-  }
+  const files = Array.from(e.dataTransfer.files);
+  files.reduce((p, file) => p.then(() => handleZipFile(file)), Promise.resolve());
 });
 
 fileInput.addEventListener("change", (e) => {
-  if (e.target.files.length > 0) {
-    handleZipFile(e.target.files[0]);
-  }
+  const files = Array.from(e.target.files);
+  files.reduce((p, file) => p.then(() => handleZipFile(file)), Promise.resolve());
 });
 
 closeModal.addEventListener("click", closeEditorModal);

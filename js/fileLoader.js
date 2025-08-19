@@ -11,7 +11,7 @@ function handleZipFile(file) {
 
   const zip = new JSZip();
   const fileBufferPromise = file.arrayBuffer();
-  zip.loadAsync(file).then(async (zip) => {
+  return zip.loadAsync(file).then(async (zip) => {
     const promises = [];
     zip.forEach((relativePath, zipEntry) => {
       let fileType = "string";

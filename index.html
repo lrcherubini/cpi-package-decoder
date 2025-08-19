@@ -41,17 +41,18 @@
 
         <div class="upload-area" id="uploadArea">
           <div>
-            <h3 data-i18n="drag_drop">📁 Arraste o arquivo .zip aqui ou clique para selecionar</h3>
+            <h3 data-i18n="drag_drop">📁 Arraste os arquivos .zip aqui ou clique para selecionar</h3>
             <button
               class="upload-btn"
               onclick="document.getElementById('fileInput').click()"
             >
-              <span data-i18n="select_zip">Selecionar Arquivo ZIP</span>
+              <span data-i18n="select_zip">Selecionar Arquivos ZIP</span>
             </button>
             <input
               type="file"
               id="fileInput"
               accept=".zip"
+              multiple
             />
             <p style="margin-top: 15px; color: #666" data-i18n="supports_zip">
               Suporta: Pacotes .zip do SAP CPI
