@@ -104,6 +104,13 @@ results.addEventListener("click", function (e) {
   const scriptItem = e.target.closest(".script-item");
   if (!scriptItem) return;
 
+  const pkgIndex = scriptItem.dataset.packageIndex;
+  if (pkgIndex !== undefined && packagesData[pkgIndex]) {
+    fileContents = packagesData[pkgIndex].fileContents;
+    resourcesCntDecoded = packagesData[pkgIndex].resourcesCntDecoded;
+    originalZipName = packagesData[pkgIndex].originalZipName;
+  }
+
   if (scriptItem.dataset.resourceId) {
     const resourceId = scriptItem.dataset.resourceId;
     const resourceName = scriptItem.querySelector(".script-name").textContent;
