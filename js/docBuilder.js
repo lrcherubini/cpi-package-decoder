@@ -80,8 +80,7 @@ async function extractContentAsString(content) {
     const zip = await JSZip.loadAsync(content);
     const candidates = Object.keys(zip.files).filter((f) => !zip.files[f].dir);
     const target =
-      candidates.find((f) => /\.(iflw|bpmn|xml|json|project|mmap|prop|propdef|mf)$/i.test(f)) ||
-      candidates[0];
+      candidates.filter((f) => /\.(iflw|bpmn|project|mmap|prop|propdef|mf)$/i.test(f));
     if (target) {
       return await zip.file(target).async("string");
     }
@@ -105,7 +104,7 @@ async function renderBpmnToSvg(xml) {
 async function generateRenderedViewHTML(content, fileName, allFiles) {
   const ext = fileName.split(".").pop().toLowerCase();
   try {
-    if (ext === "iflw") {
+    if (ext === "iflw" || ext === "bpmn") {
       const svg = await renderBpmnToSvg(content);
       const base64 = btoa(unescape(encodeURIComponent(svg)));
       return `<img src="data:image/svg+xml;base64,${base64}" alt="${escapeHtml(
