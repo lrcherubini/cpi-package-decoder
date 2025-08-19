@@ -338,11 +338,27 @@ async function generateBpmnImage(iflowContent) {
         viewer.get('canvas').zoom('fit-viewport');
         
         const { svg } = await viewer.saveSVG();
-        
+
         viewer.destroy();
         document.body.removeChild(tempContainer);
 
-        const dataUrl = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+        const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        const img = new Image();
+
+        const dataUrl = await new Promise((resolve, reject) => {
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+                resolve(canvas.toDataURL('image/png'));
+            };
+            img.onerror = reject;
+            img.src = url;
+        });
 
         return dataUrl;
         
