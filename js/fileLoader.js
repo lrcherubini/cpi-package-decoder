@@ -10,7 +10,8 @@ function handleZipFile(file) {
   }
 
   const zip = new JSZip();
-  zip.loadAsync(file).then((zip) => {
+  const fileBufferPromise = file.arrayBuffer();
+  zip.loadAsync(file).then(async (zip) => {
     const promises = [];
     zip.forEach((relativePath, zipEntry) => {
       let fileType = "string";
@@ -23,29 +24,36 @@ function handleZipFile(file) {
       promises.push(promise);
     });
 
-    Promise.all(promises).then(() => {
-      const resourcesCnt = getFileContent("resources.cnt");
-      const contentMetadata = getFileContent("contentmetadata.md");
+    await Promise.all(promises);
+    let resourcesCnt = getFileContent("resources.cnt");
+    let contentMetadata = getFileContent("contentmetadata.md");
 
-      if (resourcesCnt) {
-        processFile("resources.cnt", resourcesCnt);
-      }
-      if (contentMetadata) {
-        processFile("contentmetadata.md", contentMetadata);
-      }
+    if (!resourcesCnt && !contentMetadata) {
+      const buffer = await fileBufferPromise;
+      createTemporaryIflowPackage(file.name, buffer);
+      resourcesCnt = getFileContent("resources.cnt");
+      contentMetadata = getFileContent("contentmetadata.md");
+    }
 
-      if (!resourcesCnt && !contentMetadata) {
-        displayIflowFileList();
-      }
+    if (resourcesCnt) {
+      processFile("resources.cnt", resourcesCnt);
+    }
+    if (contentMetadata) {
+      processFile("contentmetadata.md", contentMetadata);
+    }
 
-      if (downloadSection) {
-        if (resourcesCnt || contentMetadata) {
-          downloadSection.style.display = "block";
-        } else {
-          downloadSection.style.display = "none";
-        }
+    if (!resourcesCnt && !contentMetadata) {
+      displayIflowFileList();
+    }
+
+    if (downloadSection) {
+      if (resourcesCnt || contentMetadata) {
+        downloadSection.style.display = "block";
+      } else {
+        downloadSection.style.display = "none";
       }
-    });
+    }
+  });
   });
 }
 
@@ -149,6 +157,28 @@ function processFile(fileName, content) {
       `<div class="code-block">${escapeHtml(String(content).substring(0, 500))}...</div>`;
     results.appendChild(resultDiv);
   }
+}
+
+function createTemporaryIflowPackage(zipName, buffer) {
+  const resourceId = zipName.replace(/\.zip$/i, "");
+  const tempPackage = {
+    resources: [
+      {
+        id: resourceId,
+        name: zipName,
+        displayName: resourceId,
+        resourceType: "IntegrationFlow",
+        semanticVersion: "1.0.0",
+        modifiedBy: "",
+        additionalAttributes: {},
+      },
+    ],
+  };
+  fileContents["resources.cnt"] = btoa(JSON.stringify(tempPackage));
+  resourcesCntDecoded = JSON.stringify(tempPackage, null, 2);
+  const metadata = `Temporary package generated for ${zipName}`;
+  fileContents["contentmetadata.md"] = btoa(metadata);
+  fileContents[`${resourceId}_content`] = buffer;
 }
 
 function displayIflowFileList() {
