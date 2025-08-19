@@ -52,6 +52,7 @@ async function buildDocumentation() {
         border-radius: 6px;
         border: 1px solid #e2e8f0;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        page-break-inside: avoid;
       }
       .artifact-type { 
         display: inline-block; 
@@ -69,10 +70,20 @@ async function buildDocumentation() {
         border-left: 4px solid #4682b4;
         margin: 15px 0;
       }
-      .guideline-item { padding: 5px; border-radius: 3px; margin: 5px 0; }
-      .guideline-item.pass { background-color: #e6fffa; border-left: 3px solid #38b2ac; }
-      .guideline-item.warn { background-color: #fffbf0; border-left: 3px solid #ed8936; }
-      .guideline-item.fail { background-color: #fff5f5; border-left: 3px solid #e53e3e; }
+      .guideline-item { padding: 10px; border-radius: 4px; margin: 8px 0; }
+      .guideline-item.pass { background-color: #e6fffa; border-left: 4px solid #38b2ac; }
+      .guideline-item.warn { background-color: #fffbf0; border-left: 4px solid #ed8936; }
+      .guideline-item.fail { background-color: #fff5f5; border-left: 4px solid #e53e3e; }
+      .bpmn-diagram-container {
+        margin-top: 20px;
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: center;
+      }
+      .bpmn-diagram-container img {
+        max-width: 100%;
+        height: auto;
+      }
       table { 
         width: 100%; 
         border-collapse: collapse; 
@@ -109,63 +120,6 @@ async function buildDocumentation() {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-}
-
-async function buildArtifactsAnalysis(pkg) {
-  let html = `<h3>🔧 Análise Detalhada dos Artefatos</h3>`;
-  if (!pkg.resourcesCntDecoded) return html;
-
-  try {
-    const pkgInfo = JSON.parse(pkg.resourcesCntDecoded);
-    for (const resource of (pkgInfo.resources || [])) {
-        if (resource.resourceType !== 'ContentPackage') {
-            html += await buildArtifactDetails(resource, pkg);
-        }
-    }
-  } catch (err) {
-    console.error("Error generating artifacts analysis", err);
-  }
-  return html;
-}
-
-async function buildArtifactDetails(artifact, pkg) {
-  const name = artifact.displayName || artifact.name || artifact.id;
-  let html = `<div class="artifact-overview">`;
-  html += `<h4>${getArtifactTypeIcon(artifact.resourceType)} ${escapeHtml(name)}</h4>`;
-  
-  html += `<div><span class="artifact-type">${escapeHtml(artifact.resourceType)}</span></div>`;
-  
-  if (artifact.resourceType === 'IFlow') {
-    html += await analyzeIntegrationFlow(artifact, pkg);
-  }
-  
-  html += `</div>`;
-  return html;
-}
-
-async function analyzeIntegrationFlow(artifact, pkg) {
-  let html = "";
-  const report = pkg.guidelineReports ? pkg.guidelineReports[artifact.id] : null;
-
-  if (report) {
-    html += `<div class="guideline-report-section">`;
-    html += `<strong>🚦 Relatório de Guidelines</strong><br>`;
-    html += `<p>Passaram: ${report.summary.pass} | Avisos: ${report.summary.warn} | Falhas: ${report.summary.fail}</p>`;
-    
-    report.results.forEach(res => {
-        html += `<div class="guideline-item ${res.result}">
-            <strong>${escapeHtml(res.name)}:</strong> ${escapeHtml(res.message)}
-        </div>`;
-    });
-    html += `</div>`;
-  }
-  return html;
-}
-
-// Helper functions (getArtifactTypeIcon can be simplified or expanded)
-function getArtifactTypeIcon(type) {
-  const icons = { 'IntegrationFlow': '🔄', 'ScriptCollection': '📜', 'MessageMapping': '🗺️' };
-  return icons[type] || '📄';
 }
 
 async function buildPackageSummary(pkg, pkgName) {
@@ -344,7 +298,7 @@ async function buildArtifactDetails(artifact, pkg, type) {
       ${artifact.modifiedBy ? `<span class="artifact-type" style="background: #38b2ac;">Por ${escapeHtml(artifact.modifiedBy)}</span>` : ''}
     </div>
   `;
-  
+
   // Adiciona descrição se disponível
   if (artifact.additionalAttributes?.shortText?.attributeValues?.[0]) {
     html += `<p><strong>Descrição:</strong> ${escapeHtml(artifact.additionalAttributes.shortText.attributeValues[0])}</p>`;
@@ -398,6 +352,23 @@ async function analyzeIntegrationFlow(artifact, pkg) {
         html += parameterInfo;
       }
       
+      // Adicionar diagrama BPMN
+      const contentFileName = artifact.id + "_content";
+      const content = pkg.fileContents[contentFileName];
+      if(content) {
+          try {
+            const bpmnImage = await generateBpmnImage(content);
+            if(bpmnImage) {
+                html += `<div class="bpmn-diagram-container">
+                    <h4>Diagrama do Fluxo</h4>
+                    <img src="${bpmnImage}" alt="Diagrama BPMN do iFlow ${escapeHtml(artifact.displayName)}">
+                </div>`;
+            }
+          } catch(e) {
+              console.error("Error generating BPMN image for documentation", e);
+          }
+      }
+
     } catch (e) {
       html += `Este fluxo de integração processa e roteia dados entre sistemas. Para detalhes específicos de conectividade e configuração, consulte o ambiente SAP CPI.`;
     }
@@ -547,4 +518,59 @@ function buildDocumentFooter() {
       <p><em>Gerado em: ${new Date().toLocaleString('pt-BR')}</em></p>
     </div>
   `;
+}
+
+/**
+ * Renders a BPMN diagram from XML to a Base64 image data URL.
+ * @param {ArrayBuffer|string} iflowContent - The zipped content of the iFlow artifact.
+ * @returns {Promise<string|null>} A promise that resolves with the data URL of the image, or null on error.
+ */
+async function generateBpmnImage(iflowContent) {
+    let iflowXml = "";
+    try {
+        // Lógica para extrair o XML, seja de um ZIP ou direto
+        if (typeof iflowContent === 'string') {
+            iflowXml = iflowContent;
+        } else {
+             const zip = await new JSZip().loadAsync(iflowContent);
+             const xmlFile = Object.values(zip.files).find(
+                (file) => !file.dir && (file.name.endsWith('.iflw') || file.name.endsWith('.xml'))
+             );
+             if (xmlFile) {
+                iflowXml = await xmlFile.async("string");
+             }
+        }
+       
+        if (!iflowXml) {
+            throw new Error("No BPMN XML found in the artifact content.");
+        }
+
+        // Criar container temporário e invisível para renderização
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.width = '1000px'; 
+        tempContainer.style.height = '800px'; 
+        document.body.appendChild(tempContainer);
+
+        const viewer = new BpmnJS({ container: tempContainer });
+        await viewer.importXML(iflowXml);
+        
+        // Focar o diagrama
+        viewer.get('canvas').zoom('fit-viewport');
+        
+        const { svg } = await viewer.saveSVG();
+        
+        // Limpeza
+        viewer.destroy();
+        document.body.removeChild(tempContainer);
+
+        // Converter SVG para Data URL
+        const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+        return dataUrl;
+
+    } catch (err) {
+        console.error('Failed to generate BPMN image:', err);
+        return null;
+    }
 }
