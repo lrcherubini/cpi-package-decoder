@@ -135,7 +135,7 @@ async function buildArtifactDetails(artifact, pkg) {
   
   html += `<div><span class="artifact-type">${escapeHtml(artifact.resourceType)}</span></div>`;
   
-  if (artifact.resourceType === 'IntegrationFlow') {
+  if (artifact.resourceType === 'IFlow') {
     html += await analyzeIntegrationFlow(artifact, pkg);
   }
   
@@ -261,7 +261,7 @@ async function buildArtifactsAnalysis(pkg) {
 
 function groupArtifactsByType(resources) {
   const groups = {
-    'IntegrationFlow': [],
+    'IFlow': [],
     'ScriptCollection': [],
     'MessageMapping': [],
     'ContentPackage': [],
@@ -300,7 +300,7 @@ async function buildArtifactTypeSection(type, artifacts, pkg) {
 
 function getArtifactTypeIcon(type) {
   const icons = {
-    'IntegrationFlow': '🔄',
+    'IFlow': '🔄',
     'ScriptCollection': '📜',
     'MessageMapping': '🗺️',
     'ContentPackage': '📦',
@@ -311,7 +311,7 @@ function getArtifactTypeIcon(type) {
 
 function getArtifactTypeTitle(type) {
   const titles = {
-    'IntegrationFlow': 'Fluxos de Integração',
+    'IFlow': 'Fluxos de Integração',
     'ScriptCollection': 'Coleções de Scripts',
     'MessageMapping': 'Mapeamentos de Mensagem',
     'ContentPackage': 'Informações do Pacote',
@@ -322,7 +322,7 @@ function getArtifactTypeTitle(type) {
 
 function getArtifactTypeDescription(type) {
   const descriptions = {
-    'IntegrationFlow': 'Estes são os fluxos principais que definem como os dados são recebidos, processados e enviados para os sistemas de destino. Cada fluxo representa um processo de integração completo.',
+    'IFlow': 'Estes são os fluxos principais que definem como os dados são recebidos, processados e enviados para os sistemas de destino. Cada fluxo representa um processo de integração completo.',
     'ScriptCollection': 'Conjuntos de scripts personalizados (códigos) que implementam lógicas específicas de negócio, transformações de dados ou validações customizadas.',
     'MessageMapping': 'Configurações que definem como converter dados de um formato para outro, essencial para compatibilidade entre diferentes sistemas.',
     'ContentPackage': 'Metadados e informações gerais sobre todo o pacote de integração.',
@@ -351,7 +351,7 @@ async function buildArtifactDetails(artifact, pkg, type) {
   }
   
   // Análise específica por tipo
-  if (type === 'IntegrationFlow') {
+  if (type === 'IFlow') {
     html += await analyzeIntegrationFlow(artifact, pkg);
   } else if (type === 'ScriptCollection') {
     html += await analyzeScriptCollection(artifact, pkg);
@@ -528,9 +528,9 @@ async function getArtifactCount(pkg) {
     const resources = pkgInfo.resources || [];
     
     return {
-      iflows: resources.filter(r => r.resourceType === 'IntegrationFlow').length,
+      iflows: resources.filter(r => r.resourceType === 'IFlow').length,
       scripts: resources.filter(r => r.resourceType === 'ScriptCollection').length,
-      configs: resources.filter(r => !['IntegrationFlow', 'ScriptCollection', 'ContentPackage'].includes(r.resourceType)).length
+      configs: resources.filter(r => !['IFlow', 'ScriptCollection', 'ContentPackage'].includes(r.resourceType)).length
     };
   } catch (e) {
     return {};

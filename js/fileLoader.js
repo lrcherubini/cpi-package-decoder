@@ -340,7 +340,7 @@ function formatPackageInfo(data, packageIndex, guidelineReports) {
 
       let semaphore = "";
       if (
-        resource.resourceType === "IntegrationFlow" &&
+        resource.resourceType === "IFlow" &&
         guidelineReports &&
         guidelineReports[resource.id]
       ) {
