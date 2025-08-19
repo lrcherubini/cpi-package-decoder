@@ -54,7 +54,6 @@ function handleZipFile(file) {
       }
     }
   });
-  });
 }
 
 function openResourceInMonaco(resourceId, resourceName, resourceType) {
