@@ -1,3 +1,20 @@
+// Helper function to correctly decode Base64 to a UTF-8 string
+function decodeBase64Utf8(base64) {
+  try {
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return new TextDecoder("utf-8").decode(bytes);
+  } catch (e) {
+    console.error("Could not decode Base64 string as UTF-8:", e);
+    // Fallback to the original method to avoid a complete crash
+    return atob(base64);
+  }
+}
+
+
 // Functions for handling ZIP files and resources
 async function handleZipFile(file) {
   const packageIndex = packagesData.length;
@@ -55,7 +72,8 @@ async function handleZipFile(file) {
 
   if (resourcesCnt) {
     try {
-      const decoded = atob(resourcesCnt.trim());
+      // FIX: Use the new UTF-8 decoding function
+      const decoded = decodeBase64Utf8(resourcesCnt.trim());
       const jsonData = JSON.parse(decoded);
       localResourcesCntDecoded = JSON.stringify(jsonData, null, 2);
 
@@ -236,13 +254,15 @@ function processFile(
   try {
     if (fileName === "contentmetadata.md") {
       title = t("content_metadata_title");
-      const decoded = atob(content.trim());
+      // FIX: Use the new UTF-8 decoding function
+      const decoded = decodeBase64Utf8(content.trim());
       processedContent = `<div class=\"code-block\">${escapeHtml(
         decoded
       )}</div>`;
     } else if (fileName === "resources.cnt") {
       title = t("package_resources_title");
-      const decoded = atob(content.trim());
+      // FIX: Use the new UTF-8 decoding function
+      const decoded = decodeBase64Utf8(content.trim());
       const jsonData = JSON.parse(decoded);
       processedContent = `<div class=\"json-viewer\">${formatPackageInfo(
         jsonData,
@@ -450,7 +470,8 @@ function downloadResources() {
     try {
       const metadataContent = pkgData.fileContents["contentmetadata.md"];
       if (metadataContent) {
-        const decodedMetadata = atob(metadataContent.trim());
+        // FIX: Use the new UTF-8 decoding function
+        const decodedMetadata = decodeBase64Utf8(metadataContent.trim());
         outZip.file("contentmetadata_decoded.md", decodedMetadata);
       }
     } catch (e) {
