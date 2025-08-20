@@ -311,7 +311,6 @@ async function analyzeIntegrationFlow(artifact, pkg, includeDiagrams) {
 
   try {
     const zip = await JSZip.loadAsync(content);
-    // Adicionado: Encontra e processa o arquivo de propriedades (.prop)
     const propFile = Object.values(zip.files).find((f) => f.name.endsWith(".prop"));
     let properties = {};
     if (propFile) {
@@ -353,7 +352,6 @@ async function analyzeIntegrationFlow(artifact, pkg, includeDiagrams) {
       container.innerHTML += adaptersHtml;
     }
 
-    // Modificado: Passa os valores dos parâmetros para a função
     const parameterInfo = await analyzeFlowParameters(artifact, content, properties);
     if (parameterInfo) container.appendChild(parameterInfo);
 
@@ -376,7 +374,6 @@ async function analyzeIntegrationFlow(artifact, pkg, includeDiagrams) {
   }
   return container;
 }
-
 
 /**
  * analyzeScriptCollection
@@ -412,13 +409,49 @@ async function analyzeScriptCollection(artifact, pkg) {
   return container;
 }
 
-/**
- * analyzeFlowParameters
- *
- * Analisa os parâmetros configuráveis de um iFlow.
- * @param {string} content - O conteúdo do iFlow.
- * @param {object} properties - Um objeto com os valores dos parâmetros.
- */
+function analyzeTimerConfiguration(value) {
+    const timerData = {};
+    const rows = value.match(/<row>(.*?)<\/row>/g) || [];
+    rows.forEach((row) => {
+        const cells = row.match(/<cell>(.*?)<\/cell>/g);
+        if (cells && cells.length === 2) {
+            const key = cells[0].replace(/<\/?cell>/g, "").replace(/\\:/g, ":");
+            const val = cells[1].replace(/<\/?cell>/g, "").replace(/\\:/g, ":");
+            timerData[key] = val;
+        }
+    });
+
+    let scheduleHtml = `<table class="metadata-table"><tbody>`;
+    const scheduleType = timerData.timeType === 'TIME_INTERVAL' ? 'recurring' : (timerData.triggerType === 'cron' ? 'cron' : 'run_once');
+    
+    scheduleHtml += `<tr><td><strong>Tipo de Agendamento</strong></td><td>${scheduleType.replace('_', ' ')}</td></tr>`;
+    
+    if (scheduleType === 'run_once') {
+        scheduleHtml += `<tr><td><strong>Data/Hora de Execução</strong></td><td>${escapeHtml(timerData.fireAt || 'N/A')}</td></tr>`;
+    } 
+    else if (scheduleType === 'recurring') {
+        let frequency = '';
+        if (timerData.OnEveryMinute) frequency = `${timerData.OnEveryMinute} minuto(s)`;
+        else if (timerData.OnEveryHour) frequency = `${timerData.OnEveryHour} hora(s)`;
+        else if (timerData.OnEveryDay) frequency = `${timerData.OnEveryDay} dia(s)`;
+        
+        scheduleHtml += `<tr><td><strong>Repetir a cada</strong></td><td>${escapeHtml(frequency)}</td></tr>`;
+        if(timerData.startAt) scheduleHtml += `<tr><td><strong>Início</strong></td><td>${escapeHtml(timerData.startAt)}</td></tr>`;
+        if(timerData.endAt) scheduleHtml += `<tr><td><strong>Fim</strong></td><td>${escapeHtml(timerData.endAt)}</td></tr>`;
+    } 
+    else { // CRON
+        const cronExpression = `${timerData.second || '*'} ${timerData.minute || '*'} ${timerData.hour || '*'} ${timerData.day_of_month || '?'} ${timerData.month || '*'} ${timerData.dayOfWeek || '*'}`;
+        scheduleHtml += `<tr><td><strong>Expressão Cron</strong></td><td><code>${escapeHtml(cronExpression)}</code></td></tr>`;
+        if(timerData.startAt) scheduleHtml += `<tr><td><strong>Início</strong></td><td>${escapeHtml(timerData.startAt)}</td></tr>`;
+        if(timerData.endAt) scheduleHtml += `<tr><td><strong>Fim</strong></td><td>${escapeHtml(timerData.endAt)}</td></tr>`;
+    }
+    
+    scheduleHtml += `<tr><td><strong>Fuso Horário</strong></td><td>${escapeHtml(timerData.timeZone || 'N/A')}</td></tr>`;
+    scheduleHtml += `</tbody></table>`;
+    
+    return scheduleHtml;
+}
+
 async function analyzeFlowParameters(artifact, content, properties = {}) {
   try {
     const zip = await JSZip.loadAsync(content);
@@ -433,7 +466,6 @@ async function analyzeFlowParameters(artifact, content, properties = {}) {
     const parameters = xmlDoc.querySelectorAll("parameter");
     if (parameters.length === 0) return null;
 
-    // Encontrar o arquivo .iflw para verificar o uso dos parâmetros
     const iflowFile = Object.values(zip.files).find((f) => f.name.endsWith(".iflw"));
     let usedParams = new Set();
     if (iflowFile) {
@@ -445,10 +477,13 @@ async function analyzeFlowParameters(artifact, content, properties = {}) {
         });
     }
 
-    const allDefinedParams = Array.from(parameters).map(p => p.querySelector("name")?.textContent);
-    const inUseParams = allDefinedParams.filter(p => usedParams.has(p));
-    const orphanParams = allDefinedParams.filter(p => !usedParams.has(p));
-
+    const paramDetails = Array.from(parameters).map(p => ({
+        name: p.querySelector("name")?.textContent,
+        type: p.querySelector("type")?.textContent
+    }));
+    
+    const inUseParams = paramDetails.filter(p => p.name && usedParams.has(p.name));
+    const orphanParams = paramDetails.filter(p => p.name && !usedParams.has(p.name));
 
     const buildTable = (paramList, title) => {
         if (paramList.length === 0) return '';
@@ -461,11 +496,15 @@ async function analyzeFlowParameters(artifact, content, properties = {}) {
                              </tr>
                            </thead>
                            <tbody>`;
-        paramList.forEach((name) => {
-            const value = properties[name] || '<i>(padrão)</i>';
+        paramList.forEach((param) => {
+            const value = properties[param.name] || '<i>(padrão)</i>';
+            let formattedValue = `<code>${escapeHtml(value)}</code>`;
+            if (param.type === 'custom:schedule' && value.includes('<row>')) {
+                formattedValue = analyzeTimerConfiguration(value);
+            }
             tableHtml += `<tr>
-                          <td><strong>${escapeHtml(name)}</strong></td>
-                          <td><code>${escapeHtml(value)}</code></td>
+                          <td><strong>${escapeHtml(param.name)}</strong></td>
+                          <td>${formattedValue}</td>
                         </tr>`;
         });
         tableHtml += "</tbody></table>";

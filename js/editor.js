@@ -518,30 +518,7 @@ function buildPropView(propContent, allFiles) {
             sectionHtml += `<h4 class="result-title">${t("param_label").replace("{param}", escapeHtml(key))}</h4>`;
 
             if (paramTypes[key] === "custom:schedule" && value.includes("<row>")) {
-                const timerData = {};
-                const rows = value.match(/<row>(.*?)<\/row>/g) || [];
-                rows.forEach((row) => {
-                    const cells = row.match(/<cell>(.*?)<\/cell>/g);
-                    if (cells && cells.length === 2) {
-                        const cellKey = cells[0].replace(/<\/?cell>/g, "").replace(/\\:/g, ":");
-                        const cellValue = cells[1].replace(/<\/?cell>/g, "").replace(/\\:/g, ":");
-                        timerData[cellKey] = cellValue;
-                    }
-                });
-
-                const cronExpression = timerData.schedule1
-                    ? timerData.schedule1.split("&")[0].replace(/\+/g, " ")
-                    : "N/A";
-
-                sectionHtml += `<table class="metadata-table">
-                                  <tbody>
-                                      <tr><td><strong>${t("trigger_type_label")}</strong></td><td>${escapeHtml(timerData.triggerType || "N/A")}</td></tr>
-                                      <tr><td><strong>${t("schedule_date_label")}</strong></td><td>${escapeHtml(timerData.yearValue || "????")}-${escapeHtml(timerData.monthValue || "??")}-${escapeHtml(timerData.dayValue || "??")}</td></tr>
-                                      <tr><td><strong>${t("schedule_time_label")}</strong></td><td>${escapeHtml(timerData.hourValue || "??")}:${escapeHtml(timerData.minutesValue || "??")}</td></tr>
-                                      <tr><td><strong>${t("timezone_label")}</strong></td><td>${escapeHtml(timerData.timeZone || "N/A")}</td></tr>
-                                      <tr><td><strong>${t("cron_expression_label")}</strong></td><td><div class="code-block">${escapeHtml(cronExpression)}</div></td></tr>
-                                  </tbody>
-                               </table>`;
+                sectionHtml += buildScheduleView(value);
             } else {
                 sectionHtml += `<div class="code-block">${escapeHtml(value)}</div>`;
             }
@@ -558,6 +535,49 @@ function buildPropView(propContent, allFiles) {
     }
 
     return html;
+}
+
+function buildScheduleView(value) {
+    const timerData = {};
+    const rows = value.match(/<row>(.*?)<\/row>/g) || [];
+    rows.forEach((row) => {
+        const cells = row.match(/<cell>(.*?)<\/cell>/g);
+        if (cells && cells.length === 2) {
+            const key = cells[0].replace(/<\/?cell>/g, "").replace(/\\:/g, ":");
+            const val = cells[1].replace(/<\/?cell>/g, "").replace(/\\:/g, ":");
+            timerData[key] = val;
+        }
+    });
+
+    let scheduleHtml = `<table class="metadata-table"><tbody>`;
+    const scheduleType = timerData.timeType === 'TIME_INTERVAL' ? 'recurring' : (timerData.triggerType === 'cron' ? 'cron' : 'run_once');
+    
+    scheduleHtml += `<tr><td><strong>${t("schedule_type")}</strong></td><td>${t(scheduleType + '_schedule')}</td></tr>`;
+    
+    if (scheduleType === 'run_once') {
+        scheduleHtml += `<tr><td><strong>${t("schedule_datetime")}</strong></td><td>${escapeHtml(timerData.fireAt || 'N/A')}</td></tr>`;
+    } 
+    else if (scheduleType === 'recurring') {
+        let frequency = '';
+        if (timerData.OnEveryMinute) frequency = `${timerData.OnEveryMinute} ${t('minutes')}`;
+        else if (timerData.OnEveryHour) frequency = `${timerData.OnEveryHour} ${t('hours')}`;
+        else if (timerData.OnEveryDay) frequency = `${timerData.OnEveryDay} ${t('days')}`;
+        
+        scheduleHtml += `<tr><td><strong>${t("repeats_every")}</strong></td><td>${escapeHtml(frequency)}</td></tr>`;
+        if(timerData.startAt) scheduleHtml += `<tr><td><strong>${t("start_time")}</strong></td><td>${escapeHtml(timerData.startAt)}</td></tr>`;
+        if(timerData.endAt) scheduleHtml += `<tr><td><strong>${t("end_time")}</strong></td><td>${escapeHtml(timerData.endAt)}</td></tr>`;
+    } 
+    else { // CRON
+        const cronExpression = `${timerData.second || '*'} ${timerData.minute || '*'} ${timerData.hour || '*'} ${timerData.day_of_month || '?'} ${timerData.month || '*'} ${timerData.dayOfWeek || '*'}`;
+        scheduleHtml += `<tr><td><strong>${t("cron_expression_label")}</strong></td><td><div class="code-block">${escapeHtml(cronExpression)}</div></td></tr>`;
+        if(timerData.startAt) scheduleHtml += `<tr><td><strong>${t("start_time")}</strong></td><td>${escapeHtml(timerData.startAt)}</td></tr>`;
+        if(timerData.endAt) scheduleHtml += `<tr><td><strong>${t("end_time")}</strong></td><td>${escapeHtml(timerData.endAt)}</td></tr>`;
+    }
+    
+    scheduleHtml += `<tr><td><strong>${t("timezone_label")}</strong></td><td>${escapeHtml(timerData.timeZone || 'N/A')}</td></tr>`;
+    scheduleHtml += `</tbody></table>`;
+    
+    return scheduleHtml;
 }
 
 function buildJsonTree(obj, name = "") {
