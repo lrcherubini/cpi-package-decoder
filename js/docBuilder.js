@@ -286,6 +286,13 @@ async function buildArtifactDetails(artifact, pkg, type, includeDiagrams) {
       includeDiagrams
     );
     container.appendChild(flowAnalysis);
+    
+    // CORREÇÃO: Adiciona a análise de guidelines que estava faltando
+    const guidelineReport = pkg.guidelineReports[artifact.id];
+    if (guidelineReport) {
+        container.appendChild(buildGuidelineReportHtml(guidelineReport));
+    }
+
   } else if (type === "ScriptCollection") {
     const scriptAnalysis = await analyzeScriptCollection(artifact, pkg);
     container.appendChild(scriptAnalysis);
@@ -644,4 +651,34 @@ async function generateBpmnImage(iflowContent, outputType = "dataUrl") {
     console.error("Failed to generate BPMN image:", err);
     return null;
   }
+}
+
+// NOVA FUNÇÃO: Constrói a seção de relatório de guidelines para o DOCX
+function buildGuidelineReportHtml(report) {
+    const container = document.createElement('div');
+    container.className = 'guideline-report-section';
+
+    let html = `<h4>✔️ Análise de Guidelines</h4>
+                <p><strong>Resultado:</strong> ${report.summary.pass} Aprovados, ${report.summary.warn} Avisos, ${report.summary.fail} Falhas.</p>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Verificação</th>
+                      <th>Resultado</th>
+                      <th>Mensagem</th>
+                    </tr>
+                  </thead>
+                  <tbody>`;
+    
+    report.results.forEach(res => {
+        html += `<tr>
+                   <td><strong>${escapeHtml(res.name)}</strong><br><small>${escapeHtml(res.description)}</small></td>
+                   <td>${escapeHtml(res.result)}</td>
+                   <td>${escapeHtml(res.message)}</td>
+                 </tr>`;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+    return container;
 }

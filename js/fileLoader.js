@@ -14,6 +14,19 @@ function decodeBase64Utf8(base64) {
   }
 }
 
+// NOVA FUNÇÃO: Extrai o conteúdo XML do iFlow de um buffer de zip
+async function getIflowXmlFromZip(zipContent) {
+    if (!zipContent) return null;
+    try {
+        const zip = await new JSZip().loadAsync(zipContent);
+        const xmlFile = Object.values(zip.files).find(f => !f.dir && f.name.endsWith('.iflw'));
+        return xmlFile ? xmlFile.async("string") : null;
+    } catch (e) {
+        console.error("Error reading iFlow zip content:", e);
+        return null;
+    }
+}
+
 
 // Functions for handling ZIP files and resources
 async function handleZipFile(file) {
@@ -72,7 +85,6 @@ async function handleZipFile(file) {
 
   if (resourcesCnt) {
     try {
-      // FIX: Use the new UTF-8 decoding function
       const decoded = decodeBase64Utf8(resourcesCnt.trim());
       const jsonData = JSON.parse(decoded);
       localResourcesCntDecoded = JSON.stringify(jsonData, null, 2);
@@ -81,18 +93,9 @@ async function handleZipFile(file) {
         if (resource.resourceType === "IFlow") {
           const contentFile = resource.id + "_content";
           const iflowContent = localFileContents[contentFile];
-          if (iflowContent) {
-            const iflowXml = await new JSZip()
-              .loadAsync(iflowContent)
-              .then((zip) => {
-                const xmlFile = Object.values(zip.files).find((f) =>
-                  f.name.endsWith(".iflw")
-                );
-                return xmlFile ? xmlFile.async("string") : null;
-              });
-            if (iflowXml) {
-              guidelineReports[resource.id] = await checkGuidelines(iflowXml);
-            }
+          const iflowXml = await getIflowXmlFromZip(iflowContent); // Usa a nova função
+          if (iflowXml) {
+            guidelineReports[resource.id] = await checkGuidelines(iflowXml);
           }
         }
       }
@@ -254,14 +257,12 @@ function processFile(
   try {
     if (fileName === "contentmetadata.md") {
       title = t("content_metadata_title");
-      // FIX: Use the new UTF-8 decoding function
       const decoded = decodeBase64Utf8(content.trim());
       processedContent = `<div class=\"code-block\">${escapeHtml(
         decoded
       )}</div>`;
     } else if (fileName === "resources.cnt") {
       title = t("package_resources_title");
-      // FIX: Use the new UTF-8 decoding function
       const decoded = decodeBase64Utf8(content.trim());
       const jsonData = JSON.parse(decoded);
       processedContent = `<div class=\"json-viewer\">${formatPackageInfo(
@@ -470,7 +471,6 @@ function downloadResources() {
     try {
       const metadataContent = pkgData.fileContents["contentmetadata.md"];
       if (metadataContent) {
-        // FIX: Use the new UTF-8 decoding function
         const decodedMetadata = decodeBase64Utf8(metadataContent.trim());
         outZip.file("contentmetadata_decoded.md", decodedMetadata);
       }
