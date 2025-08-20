@@ -59,7 +59,7 @@ async function buildDocumentation() {
     a.href = URL.createObjectURL(blob);
     a.download = `SAP_CPI_Documentation_${new Date()
       .toISOString()
-      .slice(0, 10)}.zip`;
+      .slice(0, 19)}.zip`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -330,15 +330,27 @@ async function analyzeIntegrationFlow(artifact, pkg, includeDiagrams) {
 
     const endpoints = await extractIFlowEndpoints(content);
     if (endpoints.length > 0) {
-      let listHtml =
-        "<strong>💡 Conexões deste fluxo:</strong><ul>";
+      let adaptersHtml = `<strong>🔌 Adaptadores Utilizados:</strong>
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Participante</th>
+                                <th>Tipo (Role)</th>
+                                <th>Protocolo/Adaptador</th>
+                                <th>Endereço</th>
+                              </tr>
+                            </thead>
+                            <tbody>`;
       endpoints.forEach((ep) => {
-        listHtml += `<li><strong>${escapeHtml(ep.name)}</strong> - ${escapeHtml(
-          ep.role
-        )} via ${escapeHtml(ep.protocol)}</li>`;
+        adaptersHtml += `<tr>
+                          <td>${escapeHtml(ep.name)}</td>
+                          <td>${escapeHtml(ep.role)}</td>
+                          <td>${escapeHtml(ep.protocol)}</td>
+                          <td>${escapeHtml(ep.address)}</td>
+                        </tr>`;
       });
-      listHtml += "</ul>";
-      container.innerHTML += listHtml;
+      adaptersHtml += "</tbody></table>";
+      container.innerHTML += adaptersHtml;
     }
 
     // Modificado: Passa os valores dos parâmetros para a função
@@ -422,7 +434,7 @@ async function analyzeFlowParameters(content, properties = {}) {
 
     const container = document.createElement("div");
     // Modificado: Tabela agora inclui uma coluna para "Valor"
-    let tableHtml = `<strong>⚙️ Parâmetros configuráveis:</strong>
+    let tableHtml = `<strong>⚙️ Parâmetros Externalizados:</strong>
                      <table>
                        <thead>
                          <tr>
