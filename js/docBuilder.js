@@ -310,6 +310,24 @@ async function analyzeIntegrationFlow(artifact, pkg, includeDiagrams) {
   }
 
   try {
+    const zip = await JSZip.loadAsync(content);
+    // Adicionado: Encontra e processa o arquivo de propriedades (.prop)
+    const propFile = Object.values(zip.files).find((f) => f.name.endsWith(".prop"));
+    let properties = {};
+    if (propFile) {
+        const propContent = await propFile.async("string");
+        propContent.split(/\r?\n/).forEach(line => {
+            if (line.trim() && !line.trim().startsWith("#")) {
+                const separatorIndex = line.indexOf('=');
+                if (separatorIndex !== -1) {
+                    const key = line.substring(0, separatorIndex).trim();
+                    const value = line.substring(separatorIndex + 1).trim();
+                    properties[key] = value;
+                }
+            }
+        });
+    }
+
     const endpoints = await extractIFlowEndpoints(content);
     if (endpoints.length > 0) {
       let listHtml =
@@ -323,7 +341,8 @@ async function analyzeIntegrationFlow(artifact, pkg, includeDiagrams) {
       container.innerHTML += listHtml;
     }
 
-    const parameterInfo = await analyzeFlowParameters(content);
+    // Modificado: Passa os valores dos parâmetros para a função
+    const parameterInfo = await analyzeFlowParameters(content, properties);
     if (parameterInfo) container.appendChild(parameterInfo);
 
     if (includeDiagrams) {
@@ -331,7 +350,9 @@ async function analyzeIntegrationFlow(artifact, pkg, includeDiagrams) {
       if (bpmnImage) {
         const imgContainer = document.createElement("div");
         imgContainer.className = "bpmn-diagram-container";
-        imgContainer.innerHTML = `<h4>Diagrama do Fluxo</h4><img src="${bpmnImage}" alt="Diagrama de ${escapeHtml(
+        imgContainer.innerHTML = `<h4>Diagrama do Fluxo</h4><img src="${escapeHtml(
+          bpmnImage
+        )}" alt="Diagrama de ${escapeHtml(
           artifact.displayName
         )}">`;
         container.appendChild(imgContainer);
@@ -382,8 +403,10 @@ async function analyzeScriptCollection(artifact, pkg) {
  * analyzeFlowParameters
  *
  * Analisa os parâmetros configuráveis de um iFlow.
+ * @param {string} content - O conteúdo do iFlow.
+ * @param {object} properties - Um objeto com os valores dos parâmetros.
  */
-async function analyzeFlowParameters(content) {
+async function analyzeFlowParameters(content, properties = {}) {
   try {
     const zip = await JSZip.loadAsync(content);
     const propDefFile = Object.values(zip.files).find((f) =>
@@ -398,16 +421,29 @@ async function analyzeFlowParameters(content) {
     if (parameters.length === 0) return null;
 
     const container = document.createElement("div");
-    let listHtml = "<strong>⚙️ Parâmetros configuráveis:</strong><ul>";
+    // Modificado: Tabela agora inclui uma coluna para "Valor"
+    let tableHtml = `<strong>⚙️ Parâmetros configuráveis:</strong>
+                     <table>
+                       <thead>
+                         <tr>
+                           <th>Nome</th>
+                           <th>Valor Configurado</th>
+                         </tr>
+                       </thead>
+                       <tbody>`;
+
     parameters.forEach((param) => {
       const name = param.querySelector("name")?.textContent || "N/A";
-      const desc = param.querySelector("description")?.textContent || "";
-      listHtml += `<li><strong>${escapeHtml(name)}</strong>: ${escapeHtml(
-        desc
-      )}</li>`;
+      const value = properties[name] || '<i>(padrão)</i>'; // Busca o valor no objeto de propriedades
+      
+      tableHtml += `<tr>
+                      <td><strong>${escapeHtml(name)}</strong></td>
+                      <td><code>${escapeHtml(value)}</code></td>
+                    </tr>`;
     });
-    listHtml += "</ul>";
-    container.innerHTML = listHtml;
+
+    tableHtml += "</tbody></table>";
+    container.innerHTML = tableHtml;
     return container;
   } catch (e) {
     console.warn("Could not analyze flow parameters", e);
