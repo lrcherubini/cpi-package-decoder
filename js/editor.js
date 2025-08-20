@@ -443,103 +443,120 @@ function buildProjectView(xmlContent) {
 
 function buildPropView(propContent, allFiles) {
     const paramTypes = {};
-  
-    const parsePropDefForTypes = (xmlContent) => {
-      const typesMap = {};
-      if (!xmlContent) return typesMap;
-  
-      try {
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlContent, "text/xml");
-        const parameters = xmlDoc.querySelectorAll("parameter");
-  
-        parameters.forEach((param) => {
-          const name = param.querySelector("name")?.textContent;
-          const type = param.querySelector("type")?.textContent;
-          if (name && type) {
-            typesMap[name] = type;
-          }
-        });
-      } catch (e) {
-        console.error("Erro ao parsear o arquivo .propdef:", e);
-      }
-      return typesMap;
-    };
-  
-    const propDefFileName = Object.keys(allFiles).find((f) =>
-      f.endsWith(".propdef")
-    );
-    if (propDefFileName) {
-      Object.assign(paramTypes, parsePropDefForTypes(allFiles[propDefFileName]));
+    const definedParams = [];
+
+    // 1. Encontrar o conteúdo do .propdef e do .iflow
+    const propDefFileName = Object.keys(allFiles).find((f) => f.endsWith(".propdef"));
+    const iflowFileName = Object.keys(allFiles).find((f) => f.endsWith(".iflw"));
+    const propDefContent = propDefFileName ? allFiles[propDefFileName] : null;
+    const iflowContent = iflowFileName ? allFiles[iflowFileName] : null;
+
+    // 2. Parsear o .propdef para obter todos os parâmetros definidos
+    if (propDefContent) {
+        try {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(propDefContent, "text/xml");
+            const parameters = xmlDoc.querySelectorAll("parameter");
+            parameters.forEach((param) => {
+                const name = param.querySelector("name")?.textContent;
+                const type = param.querySelector("type")?.textContent;
+                if (name) {
+                    definedParams.push(name);
+                    if (type) {
+                        paramTypes[name] = type;
+                    }
+                }
+            });
+        } catch (e) {
+            console.error("Erro ao parsear o arquivo .propdef:", e);
+        }
     }
-  
-    let html = `<h3>${t("param_values_title")}</h3>`;
-    const lines = propContent
+
+    // 3. Encontrar parâmetros usados no .iflow
+    const usedParams = new Set();
+    if (iflowContent) {
+        const matches = iflowContent.match(/\{\{([^{}]+)\}\}/g) || [];
+        matches.forEach(match => {
+            const paramName = match.substring(2, match.length - 2);
+            usedParams.add(paramName);
+        });
+    }
+
+    // 4. Separar parâmetros em "em uso" e "órfãos"
+    const inUseParams = definedParams.filter(p => usedParams.has(p));
+    const orphanParams = definedParams.filter(p => !usedParams.has(p));
+
+    // 5. Ler os valores do .prop
+    const paramValues = {};
+    propContent
       .split(/\r?\n/)
-      .filter((line) => !line.trim().startsWith("#") && line.includes("="));
-  
-    if (lines.length === 0) {
-      return html + `<p>${t("no_param_configured")}</p>`;
-    }
-  
-    lines.forEach((line) => {
-      const separatorIndex = line.indexOf("=");
-      const key = line.substring(0, separatorIndex).trim();
-      const value = line.substring(separatorIndex + 1).trim();
-  
-      html += `<div class="result-section">`;
-      html += `<h4 class="result-title">${t("param_label").replace("{param}", escapeHtml(key))}</h4>`;
-  
-      if (paramTypes[key] === "custom:schedule" && value.includes("<row>")) {
-        const timerData = {};
-        const rows = value.match(/<row>(.*?)<\/row>/g) || [];
-        rows.forEach((row) => {
-          const cells = row.match(/<cell>(.*?)<\/cell>/g);
-          if (cells && cells.length === 2) {
-            const cellKey = cells[0]
-              .replace(/<\/?cell>/g, "")
-              .replace(/\\:/g, ":");
-            const cellValue = cells[1]
-              .replace(/<\/?cell>/g, "")
-              .replace(/\\:/g, ":");
-            timerData[cellKey] = cellValue;
-          }
+      .filter((line) => !line.trim().startsWith("#") && line.includes("="))
+      .forEach((line) => {
+          const separatorIndex = line.indexOf("=");
+          const key = line.substring(0, separatorIndex).trim();
+          const value = line.substring(separatorIndex + 1).trim();
+          paramValues[key] = value;
+      });
+
+    let html = `<h3>${t("param_values_title")}</h3>`;
+
+    // Função para gerar a tabela e a visualização dos parâmetros
+    const buildParamsHtml = (paramList, title) => {
+        if (paramList.length === 0) return '';
+
+        let sectionHtml = `<h4>${title}</h4>`;
+        if (paramList.every(p => !paramValues[p])) {
+            sectionHtml += `<p>${t("no_param_configured")}</p>`;
+            return sectionHtml;
+        }
+
+        paramList.forEach((key) => {
+            const value = paramValues[key];
+            if (!value) return;
+
+            sectionHtml += `<div class="result-section">`;
+            sectionHtml += `<h4 class="result-title">${t("param_label").replace("{param}", escapeHtml(key))}</h4>`;
+
+            if (paramTypes[key] === "custom:schedule" && value.includes("<row>")) {
+                const timerData = {};
+                const rows = value.match(/<row>(.*?)<\/row>/g) || [];
+                rows.forEach((row) => {
+                    const cells = row.match(/<cell>(.*?)<\/cell>/g);
+                    if (cells && cells.length === 2) {
+                        const cellKey = cells[0].replace(/<\/?cell>/g, "").replace(/\\:/g, ":");
+                        const cellValue = cells[1].replace(/<\/?cell>/g, "").replace(/\\:/g, ":");
+                        timerData[cellKey] = cellValue;
+                    }
+                });
+
+                const cronExpression = timerData.schedule1
+                    ? timerData.schedule1.split("&")[0].replace(/\+/g, " ")
+                    : "N/A";
+
+                sectionHtml += `<table class="metadata-table">
+                                  <tbody>
+                                      <tr><td><strong>${t("trigger_type_label")}</strong></td><td>${escapeHtml(timerData.triggerType || "N/A")}</td></tr>
+                                      <tr><td><strong>${t("schedule_date_label")}</strong></td><td>${escapeHtml(timerData.yearValue || "????")}-${escapeHtml(timerData.monthValue || "??")}-${escapeHtml(timerData.dayValue || "??")}</td></tr>
+                                      <tr><td><strong>${t("schedule_time_label")}</strong></td><td>${escapeHtml(timerData.hourValue || "??")}:${escapeHtml(timerData.minutesValue || "??")}</td></tr>
+                                      <tr><td><strong>${t("timezone_label")}</strong></td><td>${escapeHtml(timerData.timeZone || "N/A")}</td></tr>
+                                      <tr><td><strong>${t("cron_expression_label")}</strong></td><td><div class="code-block">${escapeHtml(cronExpression)}</div></td></tr>
+                                  </tbody>
+                               </table>`;
+            } else {
+                sectionHtml += `<div class="code-block">${escapeHtml(value)}</div>`;
+            }
+            sectionHtml += `</div>`;
         });
-  
-        const cronExpression = timerData.schedule1
-          ? timerData.schedule1.split("&")[0].replace(/\+/g, " ")
-          : "N/A";
-  
-        html += `<table class="metadata-table">
-                          <tbody>
-                              <tr><td><strong>${t("trigger_type_label")}</strong></td><td>${escapeHtml(
-                                timerData.triggerType || "N/A"
-                              )}</td></tr>
-                              <tr><td><strong>${t("schedule_date_label")}</strong></td><td>${escapeHtml(
-                                timerData.yearValue || "????"
-                              )}-${escapeHtml(
-          timerData.monthValue || "??"
-        )}-${escapeHtml(timerData.dayValue || "??")}</td></tr>
-                              <tr><td><strong>${t("schedule_time_label")}</strong></td><td>${escapeHtml(
-                                timerData.hourValue || "??"
-                              )}:${escapeHtml(
-          timerData.minutesValue || "??"
-        )}</td></tr>
-                              <tr><td><strong>${t("timezone_label")}</strong></td><td>${escapeHtml(
-                                timerData.timeZone || "N/A"
-                              )}</td></tr>
-                              <tr><td><strong>${t("cron_expression_label")}</strong></td><td><div class="code-block">${escapeHtml(
-                                cronExpression
-                              )}</div></td></tr>
-                          </tbody>
-                       </table>`;
-      } else {
-        html += `<div class="code-block">${escapeHtml(value)}</div>`;
-      }
-  
-      html += `</div>`;
-    });
-  
+        return sectionHtml;
+    };
+
+    html += buildParamsHtml(inUseParams, t("params_in_use"));
+    html += buildParamsHtml(orphanParams, t("orphan_params"));
+
+    if (inUseParams.length === 0 && orphanParams.length === 0) {
+        html += `<p>${t("no_param_defined")}</p>`;
+    }
+
     return html;
 }
 

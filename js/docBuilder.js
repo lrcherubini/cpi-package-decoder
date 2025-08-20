@@ -354,7 +354,7 @@ async function analyzeIntegrationFlow(artifact, pkg, includeDiagrams) {
     }
 
     // Modificado: Passa os valores dos parâmetros para a função
-    const parameterInfo = await analyzeFlowParameters(content, properties);
+    const parameterInfo = await analyzeFlowParameters(artifact, content, properties);
     if (parameterInfo) container.appendChild(parameterInfo);
 
     if (includeDiagrams) {
@@ -376,6 +376,7 @@ async function analyzeIntegrationFlow(artifact, pkg, includeDiagrams) {
   }
   return container;
 }
+
 
 /**
  * analyzeScriptCollection
@@ -418,7 +419,7 @@ async function analyzeScriptCollection(artifact, pkg) {
  * @param {string} content - O conteúdo do iFlow.
  * @param {object} properties - Um objeto com os valores dos parâmetros.
  */
-async function analyzeFlowParameters(content, properties = {}) {
+async function analyzeFlowParameters(artifact, content, properties = {}) {
   try {
     const zip = await JSZip.loadAsync(content);
     const propDefFile = Object.values(zip.files).find((f) =>
@@ -432,30 +433,50 @@ async function analyzeFlowParameters(content, properties = {}) {
     const parameters = xmlDoc.querySelectorAll("parameter");
     if (parameters.length === 0) return null;
 
+    // Encontrar o arquivo .iflw para verificar o uso dos parâmetros
+    const iflowFile = Object.values(zip.files).find((f) => f.name.endsWith(".iflw"));
+    let usedParams = new Set();
+    if (iflowFile) {
+        const iflowContent = await iflowFile.async("string");
+        const matches = iflowContent.match(/\{\{([^{}]+)\}\}/g) || [];
+        matches.forEach(match => {
+            const paramName = match.substring(2, match.length - 2);
+            usedParams.add(paramName);
+        });
+    }
+
+    const allDefinedParams = Array.from(parameters).map(p => p.querySelector("name")?.textContent);
+    const inUseParams = allDefinedParams.filter(p => usedParams.has(p));
+    const orphanParams = allDefinedParams.filter(p => !usedParams.has(p));
+
+
+    const buildTable = (paramList, title) => {
+        if (paramList.length === 0) return '';
+        let tableHtml = `<h5>${title}</h5>
+                         <table>
+                           <thead>
+                             <tr>
+                               <th>Nome</th>
+                               <th>Valor Configurado</th>
+                             </tr>
+                           </thead>
+                           <tbody>`;
+        paramList.forEach((name) => {
+            const value = properties[name] || '<i>(padrão)</i>';
+            tableHtml += `<tr>
+                          <td><strong>${escapeHtml(name)}</strong></td>
+                          <td><code>${escapeHtml(value)}</code></td>
+                        </tr>`;
+        });
+        tableHtml += "</tbody></table>";
+        return tableHtml;
+    }
+
     const container = document.createElement("div");
-    // Modificado: Tabela agora inclui uma coluna para "Valor"
-    let tableHtml = `<strong>⚙️ Parâmetros Externalizados:</strong>
-                     <table>
-                       <thead>
-                         <tr>
-                           <th>Nome</th>
-                           <th>Valor Configurado</th>
-                         </tr>
-                       </thead>
-                       <tbody>`;
+    container.innerHTML = "<h4>⚙️ Parâmetros Externalizados</h4>";
+    container.innerHTML += buildTable(inUseParams, "Parâmetros em Uso");
+    container.innerHTML += buildTable(orphanParams, "Parâmetros Órfãos");
 
-    parameters.forEach((param) => {
-      const name = param.querySelector("name")?.textContent || "N/A";
-      const value = properties[name] || '<i>(padrão)</i>'; // Busca o valor no objeto de propriedades
-      
-      tableHtml += `<tr>
-                      <td><strong>${escapeHtml(name)}</strong></td>
-                      <td><code>${escapeHtml(value)}</code></td>
-                    </tr>`;
-    });
-
-    tableHtml += "</tbody></table>";
-    container.innerHTML = tableHtml;
     return container;
   } catch (e) {
     console.warn("Could not analyze flow parameters", e);
