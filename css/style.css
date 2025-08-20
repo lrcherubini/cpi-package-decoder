@@ -103,6 +103,24 @@ input[type="file"] {
   font-size: 18px;
 }
 
+/* ESTILOS ADICIONADOS PARA H5 E H6 */
+h5 {
+    font-size: 1.1em;
+    color: #333;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+}
+
+h6 {
+    font-size: 1em;
+    color: #555;
+    margin-top: 12px;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
 .code-block {
   background: #2d3748;
   color: #e2e8f0;
@@ -517,14 +535,10 @@ input[type="file"] {
 }
 
 /* Container principal precisa de position: relative para o overlay funcionar */
-/* Container principal precisa de position: relative para o overlay funcionar */
 .mmap-container {
   position: relative;
   display: flex;
-  gap: 20px; /* Aumenta um pouco o espaço entre os painéis */
-  width: 100%;
-  
-  /* CHAVE PARA A CENTRALIZAÇÃO: Centraliza os painéis quando eles não ocupam 100% da largura */
+  gap: 20px;
   justify-content: center;
 }
 
@@ -541,22 +555,16 @@ input[type="file"] {
 
 /* Painéis da árvore com largura auto-ajustável e máxima */
 .tree-panel {
-  /* flex: 1; << REMOVIDO para impedir a expansão automática e forçada */
-  
-  /* CHAVE PARA O AUTO-AJUSTE: */
-  flex-grow: 1;      /* Permite que o painel cresça se houver espaço livre... */
-  flex-shrink: 1;    /* Permite que o painel encolha se não houver espaço */
-  max-width: 45%;    /* ...mas NUNCA mais largo que 45% do container. */
-  min-width: 300px;  /* Garante que o painel não fique muito estreito. */
-
+  flex-grow: 1;
+  flex-shrink: 1;
+  max-width: 45%;
+  min-width: 300px;
   border: 1px solid #ccc;
   padding: 10px;
   overflow: auto;
   max-height: 75vh;
   z-index: 0;
 }
-
-/* O restante do seu CSS para .tree-panel ul, li, .highlight, etc. continua o mesmo */
 
 .tree-panel ul { list-style-type: none; padding-left: 15px; }
 .tree-panel li { padding: 2px 0; cursor: pointer; }
@@ -589,12 +597,10 @@ input[type="file"] {
   stroke-width: 2.5;
 }
 
-/* Container principal da visão de pacote */
 .package-view-container {
     padding: 10px;
 }
 
-/* Estilo para os títulos das seções (h2) */
 .package-view-container h2 {
     font-size: 18px;
     color: #333;
@@ -607,13 +613,11 @@ input[type="file"] {
     margin-top: 0;
 }
 
-/* Pequeno ajuste na tabela de relações para melhor espaçamento */
 .relations-table td {
     font-style: italic;
     color: #444;
 }
 
-/* Tabela para a nova seção de Endpoints */
 .endpoints-table td {
     vertical-align: middle;
 }

@@ -83,14 +83,12 @@ async function generatePackageDocumentationHtml(pkg, includeDiagrams = false) {
     h2 { color: #2d3748; background: #e6f3ff; padding: 15px; border-left: 5px solid #0066cc; margin: 30px 0 20px 0; }
     h3 { color: #4a5568; margin: 25px 0 15px 0; }
     h4 { color: #2d3748; margin: 20px 0 10px 0; padding-left: 10px; border-left: 3px solid #cbd5e0; }
+    h5 { color: #4a5568; margin-top: 20px; margin-bottom: 10px; font-size: 12pt; }
+    h6 { color: #2d3748; margin-top: 15px; margin-bottom: 5px; font-size: 12pt; }
     .package-summary { background: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0; }
     .artifact-overview { background: #fff; padding: 15px; margin: 15px 0; border-radius: 6px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); page-break-inside: avoid; }
     .artifact-type { display: inline-block; background: #3182ce; color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.85em; font-weight: bold; margin: 5px 5px 5px 0; }
     .guideline-report-section { background: #f0f8ff; padding: 15px; border-left: 4px solid #4682b4; margin: 15px 0; }
-    .guideline-item { padding: 10px; border-radius: 4px; margin: 8px 0; }
-    .guideline-item.pass { background-color: #e6fffa; border-left: 4px solid #38b2ac; }
-    .guideline-item.warn { background-color: #fffbf0; border-left: 4px solid #ed8936; }
-    .guideline-item.fail { background-color: #fff5f5; border-left: 4px solid #e53e3e; }
     .bpmn-diagram-container { margin-top: 20px; border: 1px solid #ddd; padding: 10px; text-align: center; }
     .bpmn-diagram-container img { max-width: 100%; height: auto; }
     table { width: 100%; border-collapse: collapse; margin: 15px 0; background: white; }
@@ -117,18 +115,10 @@ async function generatePackageDocumentationHtml(pkg, includeDiagrams = false) {
  * buildArtifactsAnalysis
  *
  * Constrói a seção de análise de artefatos para a documentação.
- * @param {object} pkg - O objeto de dados do pacote.
- * @param {boolean} includeDiagrams - Se deve incluir diagramas na análise.
- * @returns {HTMLElement} - O elemento container com a análise.
  */
 async function buildArtifactsAnalysis(pkg, includeDiagrams) {
   const container = document.createElement("div");
   container.innerHTML = "<h3>🔧 Análise Detalhada dos Artefatos</h3>";
-
-  if (!pkg.resourcesCntDecoded) {
-    container.innerHTML += `<p><em>Não foi possível analisar os artefatos.</em></p>`;
-    return container;
-  }
 
   try {
     const pkgInfo = JSON.parse(pkg.resourcesCntDecoded);
@@ -140,12 +130,7 @@ async function buildArtifactsAnalysis(pkg, includeDiagrams) {
 
     const artifactsByType = groupArtifactsByType(resources);
     for (const [type, artifacts] of Object.entries(artifactsByType)) {
-      const section = await buildArtifactTypeSection(
-        type,
-        artifacts,
-        pkg,
-        includeDiagrams
-      );
+      const section = await buildArtifactTypeSection(type, artifacts, pkg, includeDiagrams);
       container.appendChild(section);
     }
   } catch (err) {
@@ -159,15 +144,11 @@ async function buildArtifactsAnalysis(pkg, includeDiagrams) {
  * groupArtifactsByType
  *
  * Agrupa os recursos de um pacote por seu tipo.
- * @param {Array} resources - A lista de recursos.
- * @returns {object} - Um objeto com os recursos agrupados.
  */
 function groupArtifactsByType(resources) {
   return resources.reduce((groups, resource) => {
     const type = resource.resourceType || "Other";
-    if (!groups[type]) {
-      groups[type] = [];
-    }
+    if (!groups[type]) groups[type] = [];
     groups[type].push(resource);
     return groups;
   }, {});
@@ -177,69 +158,24 @@ function groupArtifactsByType(resources) {
  * buildArtifactTypeSection
  *
  * Constrói uma seção HTML para um tipo específico de artefato.
- * @param {string} type - O tipo de artefato.
- * @param {Array} artifacts - A lista de artefatos desse tipo.
- * @param {object} pkg - O objeto de dados do pacote.
- * @param {boolean} includeDiagrams - Se deve incluir diagramas.
- * @returns {HTMLElement} - O elemento da seção.
  */
 async function buildArtifactTypeSection(type, artifacts, pkg, includeDiagrams) {
   const section = document.createElement("div");
   section.innerHTML = `
-    <h4>${getArtifactTypeIcon(type)} ${getArtifactTypeTitle(
-    type
-  )} (${artifacts.length})</h4>
+    <h4>${getArtifactTypeIcon(type)} ${getArtifactTypeTitle(type)} (${artifacts.length})</h4>
     <p>${getArtifactTypeDescription(type)}</p>
   `;
 
   for (const artifact of artifacts) {
-    const details = await buildArtifactDetails(
-      artifact,
-      pkg,
-      type,
-      includeDiagrams
-    );
+    const details = await buildArtifactDetails(artifact, pkg, type, includeDiagrams);
     section.appendChild(details);
   }
   return section;
 }
 
-// Funções auxiliares de ícones, títulos e descrições
-function getArtifactTypeIcon(type) {
-  const icons = {
-    IFlow: "🔄",
-    ScriptCollection: "📜",
-    MessageMapping: "🗺️",
-    ContentPackage: "📦",
-    Other: "📄",
-  };
-  return icons[type] || "📄";
-}
-
-function getArtifactTypeTitle(type) {
-  const titles = {
-    IFlow: "Fluxos de Integração",
-    ScriptCollection: "Coleções de Scripts",
-    MessageMapping: "Mapeamentos de Mensagem",
-    ContentPackage: "Informações do Pacote",
-    Other: "Outros Artefatos",
-  };
-  return titles[type] || type;
-}
-
-function getArtifactTypeDescription(type) {
-  const descriptions = {
-    IFlow:
-      "Fluxos principais que definem como os dados são processados e enviados.",
-    ScriptCollection:
-      "Conjuntos de scripts (Groovy, JS) que implementam lógicas customizadas.",
-    MessageMapping:
-      "Configurações que definem como converter dados de um formato para outro.",
-    ContentPackage: "Metadados e informações gerais sobre o pacote.",
-    Other: "Outros componentes e configurações auxiliares.",
-  };
-  return descriptions[type] || "Artefatos diversos.";
-}
+function getArtifactTypeIcon(type) { return ({ IFlow: "🔄", ScriptCollection: "📜", MessageMapping: "🗺️", ContentPackage: "📦" }[type] || "📄"); }
+function getArtifactTypeTitle(type) { return ({ IFlow: "Fluxos de Integração", ScriptCollection: "Coleções de Scripts", MessageMapping: "Mapeamentos de Mensagem", ContentPackage: "Informações do Pacote" }[type] || type); }
+function getArtifactTypeDescription(type) { return ({ IFlow: "Fluxos principais que definem como os dados são processados e enviados.", ScriptCollection: "Conjuntos de scripts que implementam lógicas customizadas.", MessageMapping: "Configurações para converter dados de um formato para outro.", ContentPackage: "Metadados e informações gerais sobre o pacote." }[type] || "Artefatos diversos."); }
 
 /**
  * buildArtifactDetails
@@ -253,38 +189,18 @@ async function buildArtifactDetails(artifact, pkg, type, includeDiagrams) {
 
   let detailsHtml = `<h5>📋 ${escapeHtml(name)}</h5>
     <div style="margin-bottom: 15px;">
-      <span class="artifact-type">${escapeHtml(
-        artifact.resourceType || "N/A"
-      )}</span>
-      ${
-        artifact.semanticVersion
-          ? `<span class="artifact-type" style="background: #805ad5;">Versão ${escapeHtml(
-              artifact.semanticVersion
-            )}</span>`
-          : ""
-      }
-      ${
-        artifact.modifiedBy
-          ? `<span class="artifact-type" style="background: #38b2ac;">Por ${escapeHtml(
-              artifact.modifiedBy
-            )}</span>`
-          : ""
-      }
+      <span class="artifact-type">${escapeHtml(artifact.resourceType || "N/A")}</span>
+      ${artifact.semanticVersion ? `<span class="artifact-type" style="background: #805ad5;">Versão ${escapeHtml(artifact.semanticVersion)}</span>` : ""}
+      ${artifact.modifiedBy ? `<span class="artifact-type" style="background: #38b2ac;">Por ${escapeHtml(artifact.modifiedBy)}</span>` : ""}
     </div>`;
 
   if (artifact.additionalAttributes?.shortText?.attributeValues?.[0]) {
-    detailsHtml += `<p><strong>Descrição:</strong> ${escapeHtml(
-      artifact.additionalAttributes.shortText.attributeValues[0]
-    )}</p>`;
+    detailsHtml += `<p><strong>Descrição:</strong> ${escapeHtml(artifact.additionalAttributes.shortText.attributeValues[0])}</p>`;
   }
   container.innerHTML = detailsHtml;
 
   if (type === "IFlow") {
-    const flowAnalysis = await analyzeIntegrationFlow(
-      artifact,
-      pkg,
-      includeDiagrams
-    );
+    const flowAnalysis = await analyzeIntegrationFlow(artifact, pkg, includeDiagrams);
     container.appendChild(flowAnalysis);
     
     // CORREÇÃO: Adiciona a análise de guidelines que estava faltando
@@ -336,7 +252,7 @@ async function analyzeIntegrationFlow(artifact, pkg, includeDiagrams) {
 
     const endpoints = await extractIFlowEndpoints(content);
     if (endpoints.length > 0) {
-      let adaptersHtml = `<strong>🔌 Adaptadores Utilizados:</strong>
+      let adaptersHtml = `<h6>🔌 Adaptadores Utilizados</h6>
                           <table>
                             <thead>
                               <tr>
@@ -359,7 +275,7 @@ async function analyzeIntegrationFlow(artifact, pkg, includeDiagrams) {
       container.innerHTML += adaptersHtml;
     }
 
-    const parameterInfo = await analyzeFlowParameters(artifact, content, properties);
+    const parameterInfo = await analyzeFlowParameters(content, properties);
     if (parameterInfo) container.appendChild(parameterInfo);
 
     if (includeDiagrams) {
@@ -367,11 +283,7 @@ async function analyzeIntegrationFlow(artifact, pkg, includeDiagrams) {
       if (bpmnImage) {
         const imgContainer = document.createElement("div");
         imgContainer.className = "bpmn-diagram-container";
-        imgContainer.innerHTML = `<h4>Diagrama do Fluxo</h4><img src="${escapeHtml(
-          bpmnImage
-        )}" alt="Diagrama de ${escapeHtml(
-          artifact.displayName
-        )}">`;
+        imgContainer.innerHTML = `<h6>Diagrama do Fluxo</h6><img src="${escapeHtml(bpmnImage)}" alt="Diagrama de ${escapeHtml(artifact.displayName)}">`;
         container.appendChild(imgContainer);
       }
     }
@@ -389,77 +301,32 @@ async function analyzeIntegrationFlow(artifact, pkg, includeDiagrams) {
  */
 async function analyzeScriptCollection(artifact, pkg) {
   const container = document.createElement("div");
-  container.innerHTML =
-    "<strong>💻 Scripts personalizados incluídos:</strong><br>";
   const content = pkg.fileContents[artifact.id + "_content"];
 
   if (content) {
     try {
       const zip = await JSZip.loadAsync(content);
-      const scripts = Object.values(zip.files)
-        .filter((f) => !f.dir)
-        .map((f) => f.name);
-
+      const scripts = Object.values(zip.files).filter((f) => !f.dir).map((f) => f.name);
       if (scripts.length > 0) {
+        container.innerHTML = "<h6>💻 Scripts personalizados incluídos</h6>";
         let listHtml = `<ul>`;
-        scripts.forEach(
-          (script) => (listHtml += `<li>${escapeHtml(script)}</li>`)
-        );
+        scripts.forEach((script) => (listHtml += `<li>${escapeHtml(script)}</li>`));
         listHtml += "</ul>";
         container.innerHTML += listHtml;
       }
     } catch (e) {
-      container.innerHTML +=
-        "<p>Não foi possível ler os scripts da coleção.</p>";
+      container.innerHTML += "<p>Não foi possível ler os scripts da coleção.</p>";
     }
   }
   return container;
 }
 
-function analyzeTimerConfiguration(value) {
-    const timerData = {};
-    const rows = value.match(/<row>(.*?)<\/row>/g) || [];
-    rows.forEach((row) => {
-        const cells = row.match(/<cell>(.*?)<\/cell>/g);
-        if (cells && cells.length === 2) {
-            const key = cells[0].replace(/<\/?cell>/g, "").replace(/\\:/g, ":");
-            const val = cells[1].replace(/<\/?cell>/g, "").replace(/\\:/g, ":");
-            timerData[key] = val;
-        }
-    });
-
-    let scheduleHtml = `<table class="metadata-table"><tbody>`;
-    const scheduleType = timerData.timeType === 'TIME_INTERVAL' ? 'recurring' : (timerData.triggerType === 'cron' ? 'cron' : 'run_once');
-    
-    scheduleHtml += `<tr><td><strong>Tipo de Agendamento</strong></td><td>${scheduleType.replace('_', ' ')}</td></tr>`;
-    
-    if (scheduleType === 'run_once') {
-        scheduleHtml += `<tr><td><strong>Data/Hora de Execução</strong></td><td>${escapeHtml(timerData.fireAt || 'N/A')}</td></tr>`;
-    } 
-    else if (scheduleType === 'recurring') {
-        let frequency = '';
-        if (timerData.OnEveryMinute) frequency = `${timerData.OnEveryMinute} minuto(s)`;
-        else if (timerData.OnEveryHour) frequency = `${timerData.OnEveryHour} hora(s)`;
-        else if (timerData.OnEveryDay) frequency = `${timerData.OnEveryDay} dia(s)`;
-        
-        scheduleHtml += `<tr><td><strong>Repetir a cada</strong></td><td>${escapeHtml(frequency)}</td></tr>`;
-        if(timerData.startAt) scheduleHtml += `<tr><td><strong>Início</strong></td><td>${escapeHtml(timerData.startAt)}</td></tr>`;
-        if(timerData.endAt) scheduleHtml += `<tr><td><strong>Fim</strong></td><td>${escapeHtml(timerData.endAt)}</td></tr>`;
-    } 
-    else { // CRON
-        const cronExpression = `${timerData.second || '*'} ${timerData.minute || '*'} ${timerData.hour || '*'} ${timerData.day_of_month || '?'} ${timerData.month || '*'} ${timerData.dayOfWeek || '*'}`;
-        scheduleHtml += `<tr><td><strong>Expressão Cron</strong></td><td><code>${escapeHtml(cronExpression)}</code></td></tr>`;
-        if(timerData.startAt) scheduleHtml += `<tr><td><strong>Início</strong></td><td>${escapeHtml(timerData.startAt)}</td></tr>`;
-        if(timerData.endAt) scheduleHtml += `<tr><td><strong>Fim</strong></td><td>${escapeHtml(timerData.endAt)}</td></tr>`;
-    }
-    
-    scheduleHtml += `<tr><td><strong>Fuso Horário</strong></td><td>${escapeHtml(timerData.timeZone || 'N/A')}</td></tr>`;
-    scheduleHtml += `</tbody></table>`;
-    
-    return scheduleHtml;
-}
-
-async function analyzeFlowParameters(artifact, content, properties = {}) {
+/**
+ * analyzeFlowParameters
+ *
+ * Analisa e formata os parâmetros externalizados de um iFlow.
+ */
+async function analyzeFlowParameters(content, properties = {}) {
   try {
     const zip = await JSZip.loadAsync(content);
     const propDefFile = Object.values(zip.files).find((f) => f.name.endsWith(".propdef"));
@@ -499,18 +366,15 @@ async function analyzeFlowParameters(artifact, content, properties = {}) {
         const matches = iflowContent.match(/\{\{([^{}]+)\}\}/g) || [];
         matches.forEach(match => usedParams.add(match.substring(2, match.length - 2)));
     }
-
+    
     const groupParams = (paramKeys) => {
-        const grouped = {};
-        paramKeys.forEach(key => {
-            if (!properties[key]) return;
+        return paramKeys.reduce((acc, key) => {
+            if (!properties[key]) return acc;
             const meta = paramMetadata[key] || { label: key, category: "Parâmetros Globais", type: 'xsd:string' };
-            if (!grouped[meta.category]) {
-                grouped[meta.category] = [];
-            }
-            grouped[meta.category].push({ key, ...meta });
-        });
-        return grouped;
+            if (!acc[meta.category]) acc[meta.category] = [];
+            acc[meta.category].push({ key, ...meta });
+            return acc;
+        }, {});
     };
     
     const inUseParams = groupParams(definedParams.filter(p => usedParams.has(p)));
@@ -519,24 +383,18 @@ async function analyzeFlowParameters(artifact, content, properties = {}) {
     const buildGroupTable = (groupedParams, title) => {
         if (Object.keys(groupedParams).length === 0) return '';
         
-        let html = `<h5>${title}</h5>`;
+        let html = `<h6>${title}</h6>`;
         Object.entries(groupedParams).forEach(([category, params]) => {
-            html += `<h6><strong>${escapeHtml(category)}</strong></h6>
-                     <table class="parameter-table">
-                       <thead>
-                         <tr><th>Parâmetro</th><th>Valor Configurado</th></tr>
-                       </thead>
+            html += `<p><strong>${escapeHtml(category)}</strong></p>
+                     <table>
+                       <thead><tr><th>Parâmetro</th><th>Valor Configurado</th></tr></thead>
                        <tbody>`;
             params.forEach((param) => {
                 const value = properties[param.key];
-                let formattedValue = `<code>${escapeHtml(value)}</code>`;
-                if (param.type === 'custom:schedule' && value.includes('<row>')) {
-                    formattedValue = analyzeTimerConfiguration(value);
-                }
-                html += `<tr>
-                          <td><strong>${escapeHtml(param.label)}</strong></td>
-                          <td>${formattedValue}</td>
-                        </tr>`;
+                let formattedValue = (param.type === 'custom:schedule' && value.includes('<row>'))
+                    ? analyzeTimerConfiguration(value)
+                    : `<code>${escapeHtml(value)}</code>`;
+                html += `<tr><td><strong>${escapeHtml(param.label)}</strong></td><td>${formattedValue}</td></tr>`;
             });
             html += "</tbody></table>";
         });
@@ -544,7 +402,7 @@ async function analyzeFlowParameters(artifact, content, properties = {}) {
     }
 
     const container = document.createElement("div");
-    container.innerHTML = "<h4>⚙️ Parâmetros Externalizados</h4>";
+    container.innerHTML = "<h6>⚙️ Parâmetros Externalizados</h6>";
     container.innerHTML += buildGroupTable(inUseParams, "Parâmetros em Uso");
     container.innerHTML += buildGroupTable(orphanParams, "Parâmetros Órfãos");
 
@@ -562,14 +420,9 @@ async function analyzeFlowParameters(artifact, content, properties = {}) {
  */
 function buildTechnicalDetails(artifact) {
   const container = document.createElement("div");
-  let detailsHtml = `<strong>🔧 Detalhes Técnicos:</strong><br>
-                      <strong>ID:</strong> ${escapeHtml(artifact.id)}<br>`;
-  if (artifact.modifiedAt) {
-    detailsHtml += `<strong>Modificado em:</strong> ${new Date(
-      artifact.modifiedAt
-    ).toLocaleDateString("pt-BR")}<br>`;
-  }
-  container.innerHTML = detailsHtml;
+  container.innerHTML = `<h6>🔧 Detalhes Técnicos</h6>
+                         <p><strong>ID:</strong> ${escapeHtml(artifact.id)}<br>
+                         <strong>Modificado em:</strong> ${new Date(artifact.modifiedAt).toLocaleDateString("pt-BR")}</p>`;
   return container;
 }
 
@@ -577,9 +430,6 @@ function buildTechnicalDetails(artifact) {
  * generateBpmnImage
  *
  * Gera uma imagem a partir do XML de um iFlow.
- * @param {ArrayBuffer|string} iflowContent - O conteúdo do iFlow.
- * @param {'dataUrl'|'blob'} outputType - O formato de saída desejado.
- * @returns {Promise<string|Blob|null>} - A imagem no formato solicitado ou null em caso de erro.
  */
 async function generateBpmnImage(iflowContent, outputType = "dataUrl") {
   let iflowXml = "";
@@ -588,21 +438,14 @@ async function generateBpmnImage(iflowContent, outputType = "dataUrl") {
       iflowXml = iflowContent;
     } else {
       const zip = await JSZip.loadAsync(iflowContent);
-      const xmlFile = Object.values(zip.files).find(
-        (f) => !f.dir && (f.name.endsWith(".iflw") || f.name.endsWith(".xml"))
-      );
+      const xmlFile = Object.values(zip.files).find((f) => !f.dir && (f.name.endsWith(".iflw") || f.name.endsWith(".xml")));
       if (xmlFile) iflowXml = await xmlFile.async("string");
     }
 
     if (!iflowXml) throw new Error("No BPMN XML found.");
 
     const tempContainer = document.createElement("div");
-    Object.assign(tempContainer.style, {
-      position: "absolute",
-      left: "-9999px",
-      width: "1000px",
-      height: "800px",
-    });
+    Object.assign(tempContainer.style, { position: "absolute", left: "-9999px", width: "1000px", height: "800px" });
     document.body.appendChild(tempContainer);
 
     const viewer = new BpmnJS({ container: tempContainer });
@@ -613,7 +456,6 @@ async function generateBpmnImage(iflowContent, outputType = "dataUrl") {
     viewer.destroy();
     document.body.removeChild(tempContainer);
 
-    // Convert SVG to PNG
     const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
     const img = new Image();
@@ -621,30 +463,22 @@ async function generateBpmnImage(iflowContent, outputType = "dataUrl") {
     return new Promise((resolve, reject) => {
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const scale = 2; // Aumenta a resolução para melhor qualidade
+        const scale = 2;
         canvas.width = img.width * scale;
         canvas.height = img.height * scale;
         const ctx = canvas.getContext("2d");
-
-        // Preenche o fundo com branco
-        ctx.fillStyle = "#eaecee";
+        ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Desenha a imagem do diagrama sobre o fundo
         ctx.scale(scale, scale);
         ctx.drawImage(img, 0, 0);
         URL.revokeObjectURL(url);
-
         if (outputType === "blob") {
           canvas.toBlob(resolve, "image/png");
         } else {
           resolve(canvas.toDataURL("image/png"));
         }
       };
-      img.onerror = (err) => {
-        URL.revokeObjectURL(url);
-        reject(err);
-      };
+      img.onerror = reject;
       img.src = url;
     });
   } catch (err) {
@@ -653,20 +487,20 @@ async function generateBpmnImage(iflowContent, outputType = "dataUrl") {
   }
 }
 
-// NOVA FUNÇÃO: Constrói a seção de relatório de guidelines para o DOCX
+/**
+ * buildGuidelineReportHtml
+ *
+ * Constrói a seção de relatório de guidelines para o DOCX
+ */
 function buildGuidelineReportHtml(report) {
     const container = document.createElement('div');
     container.className = 'guideline-report-section';
 
-    let html = `<h4>✔️ Análise de Guidelines</h4>
+    let html = `<h6>✔️ Análise de Guidelines</h6>
                 <p><strong>Resultado:</strong> ${report.summary.pass} Aprovados, ${report.summary.warn} Avisos, ${report.summary.fail} Falhas.</p>
                 <table>
                   <thead>
-                    <tr>
-                      <th>Verificação</th>
-                      <th>Resultado</th>
-                      <th>Mensagem</th>
-                    </tr>
+                    <tr><th>Verificação</th><th>Resultado</th><th>Mensagem</th></tr>
                   </thead>
                   <tbody>`;
     
