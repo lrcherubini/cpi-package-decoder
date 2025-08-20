@@ -442,31 +442,41 @@ function buildProjectView(xmlContent) {
 }
 
 function buildPropView(propContent, allFiles) {
-    const paramTypes = {};
+    const paramMetadata = {};
     const definedParams = [];
 
-    // 1. Encontrar o conteúdo do .propdef e do .iflow
+    // 1. Encontrar arquivos
     const propDefFileName = Object.keys(allFiles).find((f) => f.endsWith(".propdef"));
     const iflowFileName = Object.keys(allFiles).find((f) => f.endsWith(".iflw"));
     const propDefContent = propDefFileName ? allFiles[propDefFileName] : null;
     const iflowContent = iflowFileName ? allFiles[iflowFileName] : null;
 
-    // 2. Parsear o .propdef para obter todos os parâmetros definidos
+    // 2. Parsear o .propdef para metadados
     if (propDefContent) {
         try {
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(propDefContent, "text/xml");
-            const parameters = xmlDoc.querySelectorAll("parameter");
-            parameters.forEach((param) => {
+            
+            xmlDoc.querySelectorAll("parameter").forEach((param) => {
                 const name = param.querySelector("name")?.textContent;
-                const type = param.querySelector("type")?.textContent;
                 if (name) {
                     definedParams.push(name);
-                    if (type) {
-                        paramTypes[name] = type;
-                    }
+                    paramMetadata[name] = {
+                        type: param.querySelector("type")?.textContent || 'xsd:string',
+                        label: name,
+                        category: t('global_params')
+                    };
                 }
             });
+
+            xmlDoc.querySelectorAll("param_references > reference").forEach(ref => {
+                const key = ref.getAttribute('param_key');
+                if (paramMetadata[key]) {
+                    paramMetadata[key].label = ref.getAttribute('attribute_uilabel') || key;
+                    paramMetadata[key].category = ref.getAttribute('attribute_category') || t('global_params');
+                }
+            });
+
         } catch (e) {
             console.error("Erro ao parsear o arquivo .propdef:", e);
         }
@@ -476,17 +486,10 @@ function buildPropView(propContent, allFiles) {
     const usedParams = new Set();
     if (iflowContent) {
         const matches = iflowContent.match(/\{\{([^{}]+)\}\}/g) || [];
-        matches.forEach(match => {
-            const paramName = match.substring(2, match.length - 2);
-            usedParams.add(paramName);
-        });
+        matches.forEach(match => usedParams.add(match.substring(2, match.length - 2)));
     }
 
-    // 4. Separar parâmetros em "em uso" e "órfãos"
-    const inUseParams = definedParams.filter(p => usedParams.has(p));
-    const orphanParams = definedParams.filter(p => !usedParams.has(p));
-
-    // 5. Ler os valores do .prop
+    // 4. Ler os valores do .prop
     const paramValues = {};
     propContent
       .split(/\r?\n/)
@@ -498,44 +501,63 @@ function buildPropView(propContent, allFiles) {
           paramValues[key] = value;
       });
 
+    // 5. Agrupar parâmetros
+    const groupParams = (paramKeys) => {
+        const grouped = {};
+        paramKeys.forEach(key => {
+            const meta = paramMetadata[key] || { label: key, category: t('global_params'), type: 'xsd:string' };
+            if (!grouped[meta.category]) {
+                grouped[meta.category] = [];
+            }
+            grouped[meta.category].push({ key, ...meta });
+        });
+        return grouped;
+    };
+
+    const inUseParams = groupParams(definedParams.filter(p => usedParams.has(p) && paramValues[p]));
+    const orphanParams = groupParams(definedParams.filter(p => !usedParams.has(p) && paramValues[p]));
+
     let html = `<h3>${t("param_values_title")}</h3>`;
 
-    // Função para gerar a tabela e a visualização dos parâmetros
-    const buildParamsHtml = (paramList, title) => {
-        if (paramList.length === 0) return '';
-
+    // 6. Função para gerar o HTML
+    const buildGroupHtml = (groupedParams, title) => {
+        if (Object.keys(groupedParams).length === 0) return '';
+        
         let sectionHtml = `<h4>${title}</h4>`;
-        if (paramList.every(p => !paramValues[p])) {
-            sectionHtml += `<p>${t("no_param_configured")}</p>`;
-            return sectionHtml;
-        }
-
-        paramList.forEach((key) => {
-            const value = paramValues[key];
-            if (!value) return;
-
-            sectionHtml += `<div class="result-section">`;
-            sectionHtml += `<h4 class="result-title">${t("param_label").replace("{param}", escapeHtml(key))}</h4>`;
-
-            if (paramTypes[key] === "custom:schedule" && value.includes("<row>")) {
-                sectionHtml += buildScheduleView(value);
-            } else {
-                sectionHtml += `<div class="code-block">${escapeHtml(value)}</div>`;
-            }
-            sectionHtml += `</div>`;
+        
+        Object.entries(groupedParams).forEach(([category, params]) => {
+            sectionHtml += `<div class="result-section">
+                              <h4 class="result-title">${escapeHtml(category)}</h4>
+                              <table class="metadata-table"><tbody>`;
+            
+            params.forEach(param => {
+                const value = paramValues[param.key];
+                let formattedValue;
+                if (param.type === 'custom:schedule' && value.includes("<row>")) {
+                    formattedValue = buildScheduleView(value);
+                } else {
+                    formattedValue = `<div class="code-block">${escapeHtml(value)}</div>`;
+                }
+                sectionHtml += `<tr>
+                                  <td><strong>${escapeHtml(param.label)}</strong></td>
+                                  <td>${formattedValue}</td>
+                                </tr>`;
+            });
+            sectionHtml += `</tbody></table></div>`;
         });
         return sectionHtml;
     };
 
-    html += buildParamsHtml(inUseParams, t("params_in_use"));
-    html += buildParamsHtml(orphanParams, t("orphan_params"));
+    html += buildGroupHtml(inUseParams, t("params_in_use"));
+    html += buildGroupHtml(orphanParams, t("orphan_params"));
 
-    if (inUseParams.length === 0 && orphanParams.length === 0) {
-        html += `<p>${t("no_param_defined")}</p>`;
+    if (Object.keys(inUseParams).length === 0 && Object.keys(orphanParams).length === 0) {
+        html += `<p>${t("no_param_configured")}</p>`;
     }
 
     return html;
 }
+
 
 function buildScheduleView(value) {
     const timerData = {};

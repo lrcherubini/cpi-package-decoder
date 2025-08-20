@@ -455,66 +455,91 @@ function analyzeTimerConfiguration(value) {
 async function analyzeFlowParameters(artifact, content, properties = {}) {
   try {
     const zip = await JSZip.loadAsync(content);
-    const propDefFile = Object.values(zip.files).find((f) =>
-      f.name.endsWith(".propdef")
-    );
+    const propDefFile = Object.values(zip.files).find((f) => f.name.endsWith(".propdef"));
     if (!propDefFile) return null;
 
     const propDefContent = await propDefFile.async("string");
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(propDefContent, "text/xml");
-    const parameters = xmlDoc.querySelectorAll("parameter");
-    if (parameters.length === 0) return null;
+
+    const paramMetadata = {};
+    const definedParams = [];
+
+    xmlDoc.querySelectorAll("parameter").forEach((param) => {
+        const name = param.querySelector("name")?.textContent;
+        if (name) {
+            definedParams.push(name);
+            paramMetadata[name] = {
+                type: param.querySelector("type")?.textContent || 'xsd:string',
+                label: name,
+                category: "Parâmetros Globais"
+            };
+        }
+    });
+
+    xmlDoc.querySelectorAll("param_references > reference").forEach(ref => {
+        const key = ref.getAttribute('param_key');
+        if (paramMetadata[key]) {
+            paramMetadata[key].label = ref.getAttribute('attribute_uilabel') || key;
+            paramMetadata[key].category = ref.getAttribute('attribute_category') || "Parâmetros Globais";
+        }
+    });
 
     const iflowFile = Object.values(zip.files).find((f) => f.name.endsWith(".iflw"));
     let usedParams = new Set();
     if (iflowFile) {
         const iflowContent = await iflowFile.async("string");
         const matches = iflowContent.match(/\{\{([^{}]+)\}\}/g) || [];
-        matches.forEach(match => {
-            const paramName = match.substring(2, match.length - 2);
-            usedParams.add(paramName);
-        });
+        matches.forEach(match => usedParams.add(match.substring(2, match.length - 2)));
     }
 
-    const paramDetails = Array.from(parameters).map(p => ({
-        name: p.querySelector("name")?.textContent,
-        type: p.querySelector("type")?.textContent
-    }));
-    
-    const inUseParams = paramDetails.filter(p => p.name && usedParams.has(p.name));
-    const orphanParams = paramDetails.filter(p => p.name && !usedParams.has(p.name));
-
-    const buildTable = (paramList, title) => {
-        if (paramList.length === 0) return '';
-        let tableHtml = `<h5>${title}</h5>
-                         <table>
-                           <thead>
-                             <tr>
-                               <th>Nome</th>
-                               <th>Valor Configurado</th>
-                             </tr>
-                           </thead>
-                           <tbody>`;
-        paramList.forEach((param) => {
-            const value = properties[param.name] || '<i>(padrão)</i>';
-            let formattedValue = `<code>${escapeHtml(value)}</code>`;
-            if (param.type === 'custom:schedule' && value.includes('<row>')) {
-                formattedValue = analyzeTimerConfiguration(value);
+    const groupParams = (paramKeys) => {
+        const grouped = {};
+        paramKeys.forEach(key => {
+            if (!properties[key]) return;
+            const meta = paramMetadata[key] || { label: key, category: "Parâmetros Globais", type: 'xsd:string' };
+            if (!grouped[meta.category]) {
+                grouped[meta.category] = [];
             }
-            tableHtml += `<tr>
-                          <td><strong>${escapeHtml(param.name)}</strong></td>
+            grouped[meta.category].push({ key, ...meta });
+        });
+        return grouped;
+    };
+    
+    const inUseParams = groupParams(definedParams.filter(p => usedParams.has(p)));
+    const orphanParams = groupParams(definedParams.filter(p => !usedParams.has(p)));
+
+    const buildGroupTable = (groupedParams, title) => {
+        if (Object.keys(groupedParams).length === 0) return '';
+        
+        let html = `<h5>${title}</h5>`;
+        Object.entries(groupedParams).forEach(([category, params]) => {
+            html += `<h6><strong>${escapeHtml(category)}</strong></h6>
+                     <table class="parameter-table">
+                       <thead>
+                         <tr><th>Parâmetro</th><th>Valor Configurado</th></tr>
+                       </thead>
+                       <tbody>`;
+            params.forEach((param) => {
+                const value = properties[param.key];
+                let formattedValue = `<code>${escapeHtml(value)}</code>`;
+                if (param.type === 'custom:schedule' && value.includes('<row>')) {
+                    formattedValue = analyzeTimerConfiguration(value);
+                }
+                html += `<tr>
+                          <td><strong>${escapeHtml(param.label)}</strong></td>
                           <td>${formattedValue}</td>
                         </tr>`;
+            });
+            html += "</tbody></table>";
         });
-        tableHtml += "</tbody></table>";
-        return tableHtml;
+        return html;
     }
 
     const container = document.createElement("div");
     container.innerHTML = "<h4>⚙️ Parâmetros Externalizados</h4>";
-    container.innerHTML += buildTable(inUseParams, "Parâmetros em Uso");
-    container.innerHTML += buildTable(orphanParams, "Parâmetros Órfãos");
+    container.innerHTML += buildGroupTable(inUseParams, "Parâmetros em Uso");
+    container.innerHTML += buildGroupTable(orphanParams, "Parâmetros Órfãos");
 
     return container;
   } catch (e) {
