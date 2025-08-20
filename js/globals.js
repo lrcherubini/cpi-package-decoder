@@ -44,4 +44,5 @@ require.config({
 });
 require(["vs/editor/editor.main"], function () {
   console.log("Monaco Editor loaded successfully");
+  registerGroovyLanguage()
 });

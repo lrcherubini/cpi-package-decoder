@@ -129,6 +129,15 @@ function setEditorContent(content, fileName) {
   if (model) {
     monaco.editor.setModelLanguage(model, language);
   }
+
+  // Define o valor do seletor de idioma
+  const languageOptions = Array.from(languageSelect.options).map(option => option.value);
+  if (languageOptions.includes(language)) {
+    languageSelect.value = language;
+  } else {
+    languageSelect.value = "plaintext";
+  }
+
   monacoEditor.setValue(typeof content === 'object' ? JSON.stringify(content, null, 2) : content);
   currentFileName = fileName;
 
