@@ -1,122 +1,135 @@
 <!DOCTYPE html>
 <html lang="en-US">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title data-i18n="title">SAP CPI Package Decoder</title>
-    <link rel="stylesheet" href="css/style.css" />
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/bpmn-js@17.0.2/dist/assets/bpmn-js.css"
-    />
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <h1 data-i18n="title">🔓 SAP CPI Package Decoder</h1>
-        <select id="langSelect" class="lang-select">
-          <option value="pt-BR">Português</option>
-          <option value="en-US" selected>English</option>
-          <option value="es-ES">Español</option>
-        </select>
-        <p data-i18n="subtitle">
-          Decodifique e visualize o conteúdo de pacotes exportados do SAP Cloud
-          Integration
-        </p>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-i18n="title">SAP CPI Package Decoder</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.0.2/dist/assets/bpmn-js.css" />
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 data-i18n="title">🔓 SAP CPI Package Decoder</h1>
+      <select id="langSelect" class="lang-select">
+        <option value="pt-BR">Português</option>
+        <option value="en-US" selected>English</option>
+        <option value="es-ES">Español</option>
+      </select>
+      <p data-i18n="subtitle">
+        Decodifique e visualize o conteúdo de pacotes exportados do SAP Cloud
+        Integration
+      </p>
+    </div>
+
+    <div class="content">
+      <div class="info-box">
+        <strong data-i18n="how_to_use">Como usar:</strong>
+        <ol>
+          <li>
+            <span data-i18n="step_upload">Faça o upload do arquivo <code>.zip</code> exportado do SAP
+              CPI.</span>
+          </li>
+          <li>
+            <span data-i18n="step_auto">Os arquivos contidos no pacote serão automaticamente
+              decodificados.</span>
+          </li>
+        </ol>
       </div>
 
-      <div class="content">
-        <div class="info-box">
-          <strong data-i18n="how_to_use">Como usar:</strong>
-          <ol>
-            <li>
-              <span data-i18n="step_upload">Faça o upload do arquivo <code>.zip</code> exportado do SAP CPI.</span>
-            </li>
-            <li>
-              <span data-i18n="step_auto">Os arquivos contidos no pacote serão automaticamente
-              decodificados.</span>
-            </li>
-          </ol>
-        </div>
-
-        <div class="upload-area" id="uploadArea">
-          <div>
-            <h3 data-i18n="drag_drop">📁 Arraste os arquivos .zip aqui ou clique para selecionar</h3>
-            <button
-              class="upload-btn"
-              onclick="document.getElementById('fileInput').click()"
-            >
-              <span data-i18n="select_zip">Selecionar Arquivos ZIP</span>
-            </button>
-            <input
-              type="file"
-              id="fileInput"
-              accept=".zip"
-              multiple
-            />
-            <p style="margin-top: 15px; color: #666" data-i18n="supports_zip">
-              Suporta: Pacotes .zip do SAP CPI
-            </p>
-          </div>
-        </div>
-
-        <div id="downloadSection" class="result-section" style="display: none; text-align: center;">
-          <button id="downloadBtn" class="download-btn" data-i18n="download_decoded">⬇️ Baixar Recursos Decodificados</button>
-          <button id="docBtn" class="download-btn" data-i18n="build_doc">📘 Build Documentation</button>
-          <button id="refreshBtn" class="download-btn" data-i18n="refresh" title="Refresh">🔄</button>
-        </div>
-
-        <div id="results" class="results"></div>
-
-        <div class="project-info">
-          <p data-i18n="project_info">
-            Este projeto está disponível no
-            <a href="https://github.com/lrcherubini/cpi-package-decoder" target="_blank" rel="noopener noreferrer">GitHub</a>.
-            Colaborações são bem-vindas!
+      <div class="upload-area" id="uploadArea">
+        <div>
+          <h3 data-i18n="drag_drop">
+            📁 Arraste os arquivos .zip aqui ou clique para selecionar
+          </h3>
+          <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+            <span data-i18n="select_zip">Selecionar Arquivos ZIP</span>
+          </button>
+          <input type="file" id="fileInput" accept=".zip" multiple />
+          <p style="margin-top: 15px; color: #666" data-i18n="supports_zip">
+            Suporta: Pacotes .zip do SAP CPI
           </p>
         </div>
       </div>
-    </div>
 
-    <div id="editorModal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 id="modalTitle" data-i18n="modal_title">Conteúdo do Arquivo</h3>
-          <div class="modal-controls">
-            <select id="languageSelect" class="language-select">
-              <option value="javascript">JavaScript</option>
-              <option value="groovy">Groovy</option>
-              <option value="xml">XML</option>
-              <option value="json">JSON</option>
-              <option value="sql">SQL</option>
-              <option value="java">Java</option>
-              <option value="python">Python</option>
-              <option value="plaintext">Plain Text</option>
-            </select>
-            <select id="fileSelect" class="file-select"></select>
-            <button id="formatBtn" class="control-btn" title="Formatar código">✨</button>
-            <button id="copyBtn" class="control-btn" title="Copiar conteúdo">📋</button>
-            <button id="viewSwitchBtn" class="control-btn" style="display:none;" title="Switch View">🔀</button>
-            <button id="fullscreenBtn" class="control-btn" title="Tela cheia">⛶</button>
-            <button id="closeModal" class="close-btn">&times;</button>
-          </div>
-        </div>
-        <div id="monacoEditor" class="monaco-container"></div>
-        <div id="renderedView" class="rendered-container" style="display:none;"></div>
+      <div id="downloadSection" class="result-section" style="display: none; text-align: center">
+        <button id="downloadBtn" class="download-btn" data-i18n="download_decoded">
+          ⬇️ Baixar Recursos Decodificados
+        </button>
+        <button id="docBtn" class="download-btn" data-i18n="build_doc">
+          📘 Build Documentation
+        </button>
+        <button id="refreshBtn" class="download-btn" data-i18n="refresh" title="Refresh">
+          🔄
+        </button>
+      </div>
+
+      <div id="results" class="results"></div>
+
+      <div class="project-info">
+        <p data-i18n="project_info">
+          Este projeto está disponível no
+          <a href="https://github.com/lrcherubini/cpi-package-decoder" target="_blank"
+            rel="noopener noreferrer">GitHub</a>. Colaborações são bem-vindas!
+        </p>
       </div>
     </div>
+  </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://unpkg.com/bpmn-js@17.0.2/dist/bpmn-navigated-viewer.development.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
-    <script src="js/i18n.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
-    <script src="js/globals.js"></script>
-    <script src="js/groovy-language.js"></script> 
-    <script src="js/guidelineChecker.js"></script>
-    <script src="js/editor.js"></script>
-    <script src="js/fileLoader.js"></script>
-    <script src="js/docBuilder.js"></script>
-    <script src="js/uiHandlers.js"></script>
-  </body>
+  <div id="editorModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle" data-i18n="modal_title">Conteúdo do Arquivo</h3>
+        <div class="modal-controls">
+          <select id="languageSelect" class="language-select">
+            <option value="javascript">JavaScript</option>
+            <option value="groovy">Groovy</option>
+            <option value="xml">XML</option>
+            <option value="json">JSON</option>
+            <option value="sql">SQL</option>
+            <option value="java">Java</option>
+            <option value="python">Python</option>
+            <option value="plaintext">Plain Text</option>
+          </select>
+          <select id="fileSelect" class="file-select"></select>
+          <button id="formatBtn" class="control-btn" title="Formatar código">
+            ✨
+          </button>
+          <button id="copyBtn" class="control-btn" title="Copiar conteúdo">
+            📋
+          </button>
+          <button id="viewSwitchBtn" class="control-btn" style="display: none" title="Switch View">
+            🔀
+          </button>
+          <button id="fullscreenBtn" class="control-btn" title="Tela cheia">
+            ⛶
+          </button>
+          <button id="closeModal" class="close-btn">&times;</button>
+        </div>
+      </div>
+      <div id="monacoEditor" class="monaco-container"></div>
+      <div id="renderedView" class="rendered-container" style="display: none"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://unpkg.com/bpmn-js@17.0.2/dist/bpmn-navigated-viewer.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/globals.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/analyzer.js"></script>
+  <script src="js/viewBuilder.js"></script>
+  <script src="js/groovy-language.js"></script>
+  <script src="js/guidelineChecker.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/fileLoader.js"></script>
+  <script src="js/docBuilder.js"></script>
+  <script src="js/uiHandlers.js"></script>
+</body>
+
 </html>
