@@ -854,12 +854,12 @@ async function buildContentPackageView(packageData, allFilesContent) {
       packageInfo.semanticVersion
     )}</td></tr>`;
 
-    if (packageInfo.additionalAttributes?.shortText?.attributeValues[0]) {
+    if (packageInfo.additionalAttributes?.shortText?.attributeValues?.[0]) {
       infoHtml += `<tr><td class="main-key">${t("description_label")}</td><td>${escapeHtml(
         packageInfo.additionalAttributes.shortText.attributeValues[0]
       )}</td></tr>`;
     }
-    if (packageInfo.additionalAttributes?.Vendor?.attributeValues[0]) {
+    if (packageInfo.additionalAttributes?.Vendor?.attributeValues?.[0]) {
       infoHtml += `<tr><td class="main-key">${t("vendor_label")}</td><td>${escapeHtml(
         packageInfo.additionalAttributes.Vendor.attributeValues[0]
       )}</td></tr>`;
