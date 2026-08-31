@@ -177,7 +177,7 @@ function formatPackageInfo(data) {
     html += `<h5>${t("resources_found")}</h5>`;
     html += '<ul class="script-list">';
     data.resources.forEach((resource) => {
-      const urlDataAttr = resource.additionalAttributes.url
+      const urlDataAttr = resource.additionalAttributes?.url
         ? ` data-resource-url="${resource.additionalAttributes.url.attributeValues}"`
         : "";
       html += `<li class="script-item" data-resource-id="${resource.id}" data-resource-type="${resource.resourceType}"${urlDataAttr}>` +
@@ -217,8 +217,8 @@ function downloadResources() {
       const content = getFileContent(id + "_content");
       if (!content) return;
       if (resource.resourceType === "ScriptCollection" ||
-          resource.contentType.includes("zip") ||
-          resource.contentType.includes("octet-stream")) {
+          resource.contentType?.includes("zip") ||
+          resource.contentType?.includes("octet-stream")) {
         const inner = new JSZip();
         const task = inner
           .loadAsync(content)
@@ -239,7 +239,7 @@ function downloadResources() {
         tasks.push(task);
       } else {
         let fileExtension = ".txt";
-        const resourceName = resource.name || resource.displayName;
+        const resourceName = resource.name || resource.displayName || "";
         const extensionMatch = resourceName.match(/\.([^.]+)$/);
         if (extensionMatch) {
           fileExtension = `.${extensionMatch[1]}`;
